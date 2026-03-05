@@ -119,6 +119,76 @@ body {
   overflow-x: auto;
 }
 
+/* ── Danger button ─────────────────────────────────────────────────────── */
+.btn-danger { background: #c0392b; color: #fff; border: none; }
+.btn-danger:hover { background: #a93226; }
+
+/* ── Gameplan meta tags ────────────────────────────────────────────────── */
+.gameplan-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.meta-tag {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Form error states ─────────────────────────────────────────────────── */
+.form-errors {
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid var(--color-required);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.form-errors strong { color: var(--color-required); }
+.form-errors ul { margin: 0.4rem 0 0 1.2rem; }
+.form-errors li { color: var(--color-text-muted); margin-bottom: 0.2rem; }
+
+/* ── Plans list page ───────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.plans-list { display: flex; flex-direction: column; gap: 1rem; }
+.plan-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.plan-card-body { flex: 1; min-width: 0; }
+.plan-card-body h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+.plan-card-body h3 a { color: var(--color-text); text-decoration: none; }
+.plan-card-body h3 a:hover { color: var(--color-primary); }
+.plan-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.5rem; }
+.plan-summary { color: var(--color-text-muted); font-size: 0.88rem; }
+.plan-card-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 4rem 1rem; color: var(--color-text-muted); }
+.empty-state p { margin-bottom: 1.5rem; font-size: 1.1rem; }
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .gameplan-header { flex-direction: column; align-items: flex-start; }
+  .gameplan-actions { flex-wrap: wrap; }
+  .plan-card { flex-direction: column; }
+  .plan-card-actions { width: 100%; justify-content: flex-start; }
+  .site-header { flex-wrap: wrap; }
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .gameplan-header { flex-direction: column; align-items: flex-start; }

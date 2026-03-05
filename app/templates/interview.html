@@ -1,68 +1,82 @@
 {% extends "base.html" %}
-{% block title %}New Project — Planner Agent{% endblock %}
+{% block title %}{% if record_id %}Edit Gameplan{% else %}New Project{% endif %} — Planner Agent{% endblock %}
 
 {% block content %}
-<h2>New Project Gameplan</h2>
+<h2>{% if record_id %}Edit Gameplan{% else %}New Project Gameplan{% endif %}</h2>
 <p class="subtitle">Fill in the details below. Required fields are marked <span class="required-marker">*</span>.</p>
 
-<form action="/generate" method="post" class="interview-form">
+{% if errors %}
+<div class="form-errors">
+  <strong>Please fix the following:</strong>
+  <ul>
+    {% for field, msg in errors.items() %}
+    <li><strong>{{ field.replace('_', ' ').title() }}</strong>: {{ msg }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form action="{{ form_action if form_action else '/generate' }}" method="post" class="interview-form">
 
   <div class="form-group">
     <label for="project_name">Project name <span class="required-marker">*</span></label>
     <input type="text" id="project_name" name="project_name" required
+           value="{{ prefill.project_name if prefill else '' }}"
            placeholder="e.g. Planner Agent" maxlength="120" />
   </div>
 
   <div class="form-group">
     <label for="problem_statement">What problem does it solve, and for whom? <span class="required-marker">*</span></label>
     <textarea id="problem_statement" name="problem_statement" required
-              rows="3" placeholder="e.g. Solo developers need a quick way to..."></textarea>
+              rows="3" placeholder="e.g. Solo developers need a quick way to...">{{ prefill.problem_statement if prefill else '' }}</textarea>
   </div>
 
   <div class="form-group">
     <label for="core_features">Core features for v1 (one per line) <span class="required-marker">*</span></label>
     <textarea id="core_features" name="core_features" required
-              rows="5" placeholder="User login&#10;Dashboard&#10;Export as PDF"></textarea>
+              rows="5" placeholder="User login&#10;Dashboard&#10;Export as PDF">{{ prefill.core_features if prefill else '' }}</textarea>
   </div>
 
   <div class="form-group">
     <label for="target_platform">Target platform <span class="required-marker">*</span></label>
     <select id="target_platform" name="target_platform" required>
       <option value="">— select —</option>
-      <option value="Web app (frontend + backend)">Web app (frontend + backend)</option>
-      <option value="REST / GraphQL API">REST / GraphQL API</option>
-      <option value="CLI tool">CLI tool</option>
-      <option value="Mobile app">Mobile app</option>
-      <option value="Desktop app">Desktop app</option>
+      <option value="Web app (frontend + backend)" {{ 'selected' if prefill and prefill.target_platform == 'Web app (frontend + backend)' else '' }}>Web app (frontend + backend)</option>
+      <option value="REST / GraphQL API" {{ 'selected' if prefill and prefill.target_platform == 'REST / GraphQL API' else '' }}>REST / GraphQL API</option>
+      <option value="CLI tool" {{ 'selected' if prefill and prefill.target_platform == 'CLI tool' else '' }}>CLI tool</option>
+      <option value="Mobile app" {{ 'selected' if prefill and prefill.target_platform == 'Mobile app' else '' }}>Mobile app</option>
+      <option value="Desktop app" {{ 'selected' if prefill and prefill.target_platform == 'Desktop app' else '' }}>Desktop app</option>
     </select>
   </div>
 
   <div class="form-group">
     <label for="preferred_language">Preferred language / framework <span class="optional-marker">(optional)</span></label>
     <input type="text" id="preferred_language" name="preferred_language"
+           value="{{ prefill.preferred_language if prefill else '' }}"
            placeholder="e.g. Python, Go, TypeScript — leave blank to get a recommendation" maxlength="80" />
   </div>
 
   <div class="form-group">
     <label for="team_size">Team size</label>
     <select id="team_size" name="team_size">
-      <option value="solo" selected>Solo</option>
-      <option value="2–3 people">2–3 people</option>
-      <option value="4–8 people">4–8 people</option>
-      <option value="8+ people">8+ people</option>
+      <option value="solo" {{ 'selected' if not prefill or prefill.team_size == 'solo' else '' }}>Solo</option>
+      <option value="2–3 people" {{ 'selected' if prefill and prefill.team_size == '2–3 people' else '' }}>2–3 people</option>
+      <option value="4–8 people" {{ 'selected' if prefill and prefill.team_size == '4–8 people' else '' }}>4–8 people</option>
+      <option value="8+ people" {{ 'selected' if prefill and prefill.team_size == '8+ people' else '' }}>8+ people</option>
     </select>
   </div>
 
   <div class="form-group">
     <label for="timeline">Target timeline <span class="optional-marker">(optional)</span></label>
     <input type="text" id="timeline" name="timeline"
+           value="{{ prefill.timeline if prefill else '' }}"
            placeholder="e.g. 6 weeks, end of Q2, no deadline" maxlength="80" />
   </div>
 
   <div class="form-group">
     <label for="constraints">Constraints <span class="optional-marker">(optional)</span></label>
     <textarea id="constraints" name="constraints"
-              rows="2" placeholder="e.g. must use existing Postgres DB, no cloud spend, GDPR compliance"></textarea>
+              rows="2" placeholder="e.g. must use existing Postgres DB, no cloud spend, GDPR compliance">{{ prefill.constraints if prefill else '' }}</textarea>
   </div>
 
   <div class="form-actions">

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}My Gameplans — Planner Agent{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>My Gameplans</h2>
+  <a href="/interview" class="btn btn-primary">&#43; New Plan</a>
+</div>
+
+{% if records %}
+<div class="plans-list">
+  {% for record in records %}
+  <div class="plan-card">
+    <div class="plan-card-body">
+      <h3><a href="/gameplan/{{ record.id }}">{{ record.project_name }}</a></h3>
+      <div class="plan-meta">
+        <span class="meta-tag">{{ record.target_platform }}</span>
+        <span class="meta-tag">{{ record.team_size }}</span>
+        {% if record.timeline %}<span class="meta-tag">{{ record.timeline }}</span>{% endif %}
+        <span class="meta-tag">{{ record.created_at.strftime('%d %b %Y') }}</span>
+      </div>
+      <p class="plan-summary">
+        {{ record.problem_statement[:140] ~ '…' if record.problem_statement | length > 140 else record.problem_statement }}
+      </p>
+    </div>
+    <div class="plan-card-actions">
+      <a href="/gameplan/{{ record.id }}" class="btn btn-secondary">View</a>
+      <a href="/gameplan/{{ record.id }}/edit" class="btn btn-secondary">Edit</a>
+      <a href="/gameplan/{{ record.id }}/download" class="btn btn-secondary">&#11015;</a>
+      <form action="/gameplan/{{ record.id }}/delete" method="post" style="display:inline"
+            onsubmit="return confirm('Delete &quot;{{ record.project_name }}&quot;? This cannot be undone.')">
+        <button type="submit" class="btn btn-danger">&#128465;</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No gameplans saved yet.</p>
+  <a href="/interview" class="btn btn-primary">Create your first gameplan &rarr;</a>
+</div>
+{% endif %}
+{% endblock %}
