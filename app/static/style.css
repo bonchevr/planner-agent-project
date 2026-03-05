@@ -1,0 +1,125 @@
+/* ── Reset & base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --color-bg:          #0f1117;
+  --color-surface:     #1a1d27;
+  --color-border:      #2a2d3a;
+  --color-primary:     #6c63ff;
+  --color-primary-hover: #5a52e0;
+  --color-text:        #e2e4ef;
+  --color-text-muted:  #8b8fa8;
+  --color-required:    #ff6b6b;
+  --color-optional:    #8b8fa8;
+  --radius:            8px;
+  --font-mono:         "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-sans:         "Inter", system-ui, -apple-system, sans-serif;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.container { width: min(900px, 100% - 2rem); margin-inline: auto; padding: 2rem 0; flex: 1; }
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.site-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.875rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.site-logo { font-weight: 700; font-size: 1.1rem; color: var(--color-primary); text-decoration: none; }
+.site-header nav a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; }
+.site-header nav a:hover { color: var(--color-text); }
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.site-footer { text-align: center; padding: 1.5rem; color: var(--color-text-muted); font-size: 0.8rem; border-top: 1px solid var(--color-border); }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-block;
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary  { background: var(--color-primary); color: #fff; }
+.btn-primary:hover  { background: var(--color-primary-hover); }
+.btn-secondary { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
+.btn-secondary:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.hero { text-align: center; padding: 4rem 1rem 3rem; }
+.hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 1rem; }
+.hero p  { color: var(--color-text-muted); max-width: 520px; margin: 0 auto 2rem; }
+
+/* ── Feature cards ────────────────────────────────────────────────────── */
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+.feature-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1.5rem; }
+.feature-card h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+.feature-card p  { color: var(--color-text-muted); font-size: 0.9rem; }
+
+/* ── Interview form ───────────────────────────────────────────────────── */
+.interview-form { max-width: 640px; }
+.subtitle { color: var(--color-text-muted); margin-bottom: 2rem; }
+.form-group { margin-bottom: 1.4rem; }
+.form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; }
+.required-marker { color: var(--color-required); }
+.optional-marker { color: var(--color-optional); font-weight: 400; font-size: 0.8rem; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  padding: 0.55rem 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: border-color 0.15s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { outline: none; border-color: var(--color-primary); }
+.form-group textarea { resize: vertical; min-height: 70px; }
+.form-actions { margin-top: 2rem; }
+
+/* ── Gameplan view ────────────────────────────────────────────────────── */
+.gameplan-header { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; justify-content: space-between; margin-bottom: 1.5rem; }
+.gameplan-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.gameplan-download { margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.gameplan-download p { color: var(--color-text-muted); font-size: 0.9rem; }
+.gameplan-raw {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .gameplan-header { flex-direction: column; align-items: flex-start; }
+}

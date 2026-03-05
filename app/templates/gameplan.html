@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ project.project_name }} — Gameplan{% endblock %}
+
+{% block content %}
+<div class="gameplan-header">
+  <h2>&#9989; Gameplan ready: {{ project.project_name }}</h2>
+  <div class="gameplan-actions">
+    <a href="/interview" class="btn btn-secondary">&#8592; Edit answers</a>
+    <a href="/interview" class="btn btn-secondary">Start a new plan</a>
+  </div>
+</div>
+
+<div class="gameplan-download">
+  <p>Copy the Markdown below or download it as <code>{{ project.slug }}.md</code>.</p>
+  <button class="btn btn-secondary" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
+  <form action="/download" method="post" style="display:inline">
+    <input type="hidden" name="project_name"       value="{{ project.project_name }}" />
+    <input type="hidden" name="problem_statement"  value="{{ project.problem_statement }}" />
+    <input type="hidden" name="core_features"      value="{{ project.core_features }}" />
+    <input type="hidden" name="target_platform"    value="{{ project.target_platform }}" />
+    <input type="hidden" name="preferred_language" value="{{ project.preferred_language }}" />
+    <input type="hidden" name="team_size"          value="{{ project.team_size }}" />
+    <input type="hidden" name="timeline"           value="{{ project.timeline }}" />
+    <input type="hidden" name="constraints"        value="{{ project.constraints }}" />
+    <button type="submit" class="btn btn-primary">&#11015; Download .md</button>
+  </form>
+</div>
+
+<pre id="gameplan-raw" class="gameplan-raw">{{ gameplan_md }}</pre>
+
+<script>
+function copyGameplan() {
+  const text = document.getElementById('gameplan-raw').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy to clipboard'; }, 2000);
+  });
+}
+</script>
+{% endblock %}
