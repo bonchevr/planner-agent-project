@@ -9,6 +9,10 @@ services:
     environment:
       - APP_ENV=development
     volumes:
-      # Persist the SQLite database across container restarts
-      - ./planner.db:/app/planner.db
+      # Named volume — Docker creates and manages the directory automatically.
+      # The SQLite file lives at /app/data/planner.db inside the container.
+      - db-data:/app/data
     restart: unless-stopped
+
+volumes:
+  db-data:
