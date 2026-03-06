@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import Optional
 
 import bcrypt as _bcrypt
-from fastapi import Cookie, Depends, Form, HTTPException, Request, Response, status
+from fastapi import Depends, Form, HTTPException, Request, Response, status
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner, URLSafeSerializer, URLSafeTimedSerializer
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.config import settings
 from app.db import get_session

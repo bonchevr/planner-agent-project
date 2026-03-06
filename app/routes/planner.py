@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlmodel import Session, select
 
-from app.auth import csrf_protect, generate_csrf_token, make_csrf_token, require_user, set_csrf_cookie
+from app.auth import csrf_protect, make_csrf_token, require_user, set_csrf_cookie
 from app.db import get_session
 from app.generator import GameplanGenerator, StackRecommender, render_md
 from app.models.project import GameplanRecord, ProjectInput, User
