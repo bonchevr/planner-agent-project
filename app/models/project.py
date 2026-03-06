@@ -64,6 +64,9 @@ class GameplanRecord(SQLModel, table=True):
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     owner: Optional[User] = Relationship(back_populates="gameplans")
 
+    # Opt-in public sharing — None means not shared, UUID4 string means shared.
+    share_token: Optional[str] = Field(default=None, unique=True, index=True)
+
     def stack(self) -> dict[str, str]:
         return json.loads(self.stack_json)
 

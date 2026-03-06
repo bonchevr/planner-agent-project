@@ -28,6 +28,27 @@
   <button class="btn btn-secondary" id="copy-btn" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
 </div>
 
+<div class="share-section">
+  {% if share_url %}
+  <div class="share-box">
+    <span class="share-label">&#128279; Public link (anyone with this URL can view)</span>
+    <div class="share-url-row">
+      <a href="{{ share_url }}" class="share-url" target="_blank" rel="noopener noreferrer">{{ share_url }}</a>
+      <button class="btn btn-secondary btn-sm" onclick="copyShareUrl()">&#128203; Copy</button>
+    </div>
+    <form action="/gameplan/{{ record.id }}/revoke" method="post" style="margin-top:0.6rem">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button type="submit" class="btn btn-danger btn-sm">&#128274; Revoke link</button>
+    </form>
+  </div>
+  {% else %}
+  <form action="/gameplan/{{ record.id }}/share" method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">&#128279; Create share link</button>
+  </form>
+  {% endif %}
+</div>
+
 <div class="gameplan-body">
   {{ record.gameplan_md | render_md | safe }}
 </div>
@@ -39,6 +60,13 @@ function copyGameplan() {
     const btn = document.getElementById('copy-btn');
     btn.textContent = '\u2705 Copied!';
     setTimeout(() => { btn.textContent = '\ud83d\udccb Copy to clipboard'; }, 2000);
+  });
+}
+function copyShareUrl() {
+  const url = {{ share_url | tojson }};
+  navigator.clipboard.writeText(url).then(() => {
+    event.target.textContent = '\u2705 Copied!';
+    setTimeout(() => { event.target.textContent = '\ud83d\udccb Copy'; }, 2000);
   });
 }
 </script>

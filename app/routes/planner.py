@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -7,6 +8,7 @@ from pydantic import ValidationError
 from sqlmodel import Session, select
 
 from app.auth import csrf_protect, make_csrf_token, require_user, set_csrf_cookie
+from app.config import settings
 from app.db import get_session
 from app.generator import GameplanGenerator, StackRecommender, render_md
 from app.models.project import GameplanRecord, ProjectInput, User
@@ -86,6 +88,43 @@ async def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "index.html")
 
 
+@router.get("/share/{share_token}", response_class=HTMLResponse)
+async def public_gameplan(
+    request: Request,
+    share_token: str,
+    session: Session = Depends(get_session),
+) -> HTMLResponse:
+    """Read-only public view — no authentication required."""
+    record = session.exec(
+        select(GameplanRecord).where(GameplanRecord.share_token == share_token)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Shared gameplan not found.")
+    return templates.TemplateResponse(
+        request,
+        "shared_gameplan.html",
+        {"record": record},
+    )
+
+
+@router.get("/share/{share_token}/download")
+async def public_download(
+    share_token: str,
+    session: Session = Depends(get_session),
+) -> Response:
+    """Download the .md file — no authentication required."""
+    record = session.exec(
+        select(GameplanRecord).where(GameplanRecord.share_token == share_token)
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Shared gameplan not found.")
+    return Response(
+        content=record.gameplan_md,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{record.slug}.md"'},
+    )
+
+
 # ── protected pages (require login) ───────────────────────────────
 
 @router.get("/interview", response_class=HTMLResponse)
@@ -128,7 +167,16 @@ async def view_gameplan(
         raise HTTPException(status_code=404, detail="Gameplan not found")
     _assert_owner(record, user)
     token = make_csrf_token()
-    resp = templates.TemplateResponse(request, "gameplan.html", {"record": record, "user": user, "csrf_token": token})
+    share_url = (
+        f"{settings.base_url}/share/{record.share_token}"
+        if record.share_token
+        else None
+    )
+    resp = templates.TemplateResponse(
+        request,
+        "gameplan.html",
+        {"record": record, "user": user, "csrf_token": token, "share_url": share_url},
+    )
     set_csrf_cookie(resp, token)
     return resp
 
@@ -314,6 +362,43 @@ async def delete_gameplan(
     session.delete(record)
     session.commit()
     return RedirectResponse(url="/gameplans", status_code=303)
+
+
+@router.post("/gameplan/{record_id}/share")
+async def share_gameplan(
+    record_id: int,
+    _csrf: None = Depends(csrf_protect),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Generate a UUID share token for this gameplan (idempotent — existing token kept)."""
+    record = session.get(GameplanRecord, record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Gameplan not found")
+    _assert_owner(record, user)
+    if not record.share_token:
+        record.share_token = str(uuid.uuid4())
+        session.add(record)
+        session.commit()
+    return RedirectResponse(url=f"/gameplan/{record_id}", status_code=303)
+
+
+@router.post("/gameplan/{record_id}/revoke")
+async def revoke_share(
+    record_id: int,
+    _csrf: None = Depends(csrf_protect),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Remove the share token, making the gameplan private again."""
+    record = session.get(GameplanRecord, record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Gameplan not found")
+    _assert_owner(record, user)
+    record.share_token = None
+    session.add(record)
+    session.commit()
+    return RedirectResponse(url=f"/gameplan/{record_id}", status_code=303)
 
 
 @router.post("/download")

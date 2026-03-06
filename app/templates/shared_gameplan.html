@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ record.project_name }} — Gameplan{% endblock %}
+
+{% block content %}
+<div class="gameplan-header">
+  <h2>&#9989; {{ record.project_name }}</h2>
+  <div class="gameplan-actions">
+    <a href="/share/{{ record.share_token }}/download" class="btn btn-primary">&#11015; Download .md</a>
+    <button class="btn btn-secondary" id="copy-btn" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
+  </div>
+</div>
+
+<div class="gameplan-meta">
+  <span class="meta-tag">{{ record.target_platform }}</span>
+  <span class="meta-tag">{{ record.team_size }}</span>
+  {% if record.timeline %}<span class="meta-tag">{{ record.timeline }}</span>{% endif %}
+  <span class="meta-tag meta-date">Saved {{ record.created_at.strftime('%d %b %Y') }}</span>
+</div>
+
+<div class="gameplan-body">
+  {{ record.gameplan_md | render_md | safe }}
+</div>
+
+<div class="shared-footer">
+  <p>Made with <a href="/">&#9678; Planner Agent</a> &mdash; plan your next project in under 5 minutes.</p>
+</div>
+
+<script>
+function copyGameplan() {
+  const raw = {{ record.gameplan_md | tojson }};
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '\u2705 Copied!';
+    setTimeout(() => { btn.textContent = '\ud83d\udccb Copy to clipboard'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

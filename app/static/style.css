@@ -260,3 +260,29 @@ body {
 .reset-link-label { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.4rem; }
 .reset-link-url { color: var(--color-primary); font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
 .reset-link-hint { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem; }
+
+/* ── Shareable public link ─────────────────────────────────────────────── */
+.share-section { margin: 1rem 0 1.5rem; }
+.share-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  word-break: break-all;
+}
+.share-label { display: block; font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.5rem; }
+.share-url-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.share-url { color: var(--color-primary); font-size: 0.88rem; flex: 1; min-width: 0; }
+.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+
+/* ── Shared page footer ────────────────────────────────────────────────── */
+.shared-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.shared-footer a { color: var(--color-primary); text-decoration: none; }
+.shared-footer a:hover { text-decoration: underline; }

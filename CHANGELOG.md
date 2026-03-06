@@ -7,6 +7,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.4.0] — 2026-03-06
+
+### Added
+- **Shareable public links** — owners can generate a UUID4 share token for any gameplan via the "Create share link" button. The public URL (`/share/{uuid}`) is accessible without authentication and renders a read-only view with rendered Markdown, meta tags, download-as-.md, and copy-to-clipboard. Sharing is off by default; the owner can revoke the link at any time.
+- `GET /share/{share_token}` — public read-only gameplan view (`shared_gameplan.html`).
+- `GET /share/{share_token}/download` — public .md download (no auth required).
+- `POST /gameplan/{id}/share` — generates UUID4 token (idempotent: subsequent calls keep the same token).
+- `POST /gameplan/{id}/revoke` — clears share token, restoring private-only access.
+- `share_token` column on `GameplanRecord` (nullable `VARCHAR`, unique index).
+- Alembic migration `002_add_share_token`.
+- `shared_gameplan.html` template with "Made with Planner Agent" footer.
+- `.share-box`, `.share-url-row`, `.share-label`, `.btn-sm`, `.shared-footer` CSS.
+- 6 new tests: unknown token 404, share creates link, public view accessible, public download, revoke removes access, share is idempotent.
+
+### Changed
+- `gameplan.html` — added share/revoke UI below the download bar.
+- `base.html` — updated footer version to v0.3.0.
+- Test suite: **61 tests** (was 55).
+
+---
+
 ## [0.3.0] — 2026-03-06
 
 ### Added

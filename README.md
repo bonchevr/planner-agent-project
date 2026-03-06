@@ -126,7 +126,7 @@ app/
   routes/          FastAPI routers (planner, health)
   templates/       Jinja2 HTML templates
   static/          CSS and static assets
-tests/             pytest test suite (55 tests, 95% coverage)
+tests/             pytest test suite (61 tests, 95% coverage)
 plans/             Project roadmap, gameplans, and deployment runbook
 agents/            VS Code Copilot agent files (code-review, devops)
 Dockerfile         Production container image

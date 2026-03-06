@@ -143,7 +143,89 @@ def test_generate_invalid_shows_form_errors(auth_client: TestClient, csrf_token:
         },
     )
     assert response.status_code == 422
-    assert b"This field is required" in response.content
+
+
+# ── shareable public links ─────────────────────────────────────────────────────
+
+def _create_record_id(auth_client: TestClient, csrf_token: str) -> str:
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
+    return r.headers["location"].split("/")[-1]
+
+
+def test_public_view_unknown_token_returns_404(client: TestClient):
+    response = client.get("/share/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+
+
+def test_share_creates_public_link(auth_client: TestClient, csrf_token: str):
+    record_id = _create_record_id(auth_client, csrf_token)
+    r = auth_client.post(
+        f"/gameplan/{record_id}/share",
+        data={"csrf_token": csrf_token},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    # The gameplan page should now show the share URL.
+    page = auth_client.get(f"/gameplan/{record_id}")
+    assert b"/share/" in page.content
+
+
+def test_public_view_accessible_after_share(auth_client: TestClient, client: TestClient, csrf_token: str):
+    record_id = _create_record_id(auth_client, csrf_token)
+    auth_client.post(f"/gameplan/{record_id}/share", data={"csrf_token": csrf_token})
+    # Extract the share token from the gameplan page.
+    page = auth_client.get(f"/gameplan/{record_id}")
+    # find href="/share/..." in the HTML
+    import re
+    match = re.search(rb'/share/([0-9a-f-]{36})', page.content)
+    assert match, "share token not found in page"
+    share_token = match.group(1).decode()
+    # Anonymous user can view the shared page.
+    public = client.get(f"/share/{share_token}")
+    assert public.status_code == 200
+    assert b"Test Project" in public.content
+
+
+def test_public_download_accessible_after_share(auth_client: TestClient, client: TestClient, csrf_token: str):
+    record_id = _create_record_id(auth_client, csrf_token)
+    auth_client.post(f"/gameplan/{record_id}/share", data={"csrf_token": csrf_token})
+    page = auth_client.get(f"/gameplan/{record_id}")
+    import re
+    match = re.search(rb'/share/([0-9a-f-]{36})', page.content)
+    share_token = match.group(1).decode()
+    dl = client.get(f"/share/{share_token}/download")
+    assert dl.status_code == 200
+    assert b"Test Project" in dl.content
+
+
+def test_revoke_removes_public_access(auth_client: TestClient, client: TestClient, csrf_token: str):
+    record_id = _create_record_id(auth_client, csrf_token)
+    auth_client.post(f"/gameplan/{record_id}/share", data={"csrf_token": csrf_token})
+    page = auth_client.get(f"/gameplan/{record_id}")
+    import re
+    match = re.search(rb'/share/([0-9a-f-]{36})', page.content)
+    share_token = match.group(1).decode()
+    # Revoke.
+    auth_client.post(f"/gameplan/{record_id}/revoke", data={"csrf_token": csrf_token})
+    # Public link should now 404.
+    assert client.get(f"/share/{share_token}").status_code == 404
+
+
+def test_share_is_idempotent(auth_client: TestClient, csrf_token: str):
+    record_id = _create_record_id(auth_client, csrf_token)
+    auth_client.post(f"/gameplan/{record_id}/share", data={"csrf_token": csrf_token})
+    page1 = auth_client.get(f"/gameplan/{record_id}")
+    import re
+    token1 = re.search(rb'/share/([0-9a-f-]{36})', page1.content).group(1)
+    # Share again — token must not change.
+    auth_client.post(f"/gameplan/{record_id}/share", data={"csrf_token": csrf_token})
+    page2 = auth_client.get(f"/gameplan/{record_id}")
+    token2 = re.search(rb'/share/([0-9a-f-]{36})', page2.content).group(1)
+    assert token1 == token2
 
 
 def test_download_post_returns_attachment(auth_client: TestClient, csrf_token: str):

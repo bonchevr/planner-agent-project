@@ -2,7 +2,7 @@
 
 > Generated: 5 March 2026
 > Last updated: 6 March 2026
-> Status: v0.3.0 — Phase 5 Complete ✅
+> Status: v0.4.0 — Phase 6 (shareable links) Complete ✅
 
 ## 1. Overview
 
@@ -221,13 +221,13 @@ _Goal: Production-grade reliability for multi-user load._
 | 4 | Structured logging | P1 | ✅ `loguru` via `app/logging_config.py`; dev=colourised, prod=JSON; stdlib intercepted |
 | 5 | Prometheus metrics | P2 | ✅ `GET /metrics` in `health.py`; `http_requests_total` + `http_request_duration_seconds` in middleware |
 
-### Phase 6 — UX & Features  _(candidate)_
+### Phase 6 — UX & Features  _(in progress)_
 _Goal: Richer output and better user experience._
 
-| # | Feature | Priority | Notes |
-|---|---------|----------|-------|
-| 1 | Export as PDF | P2 | `weasyprint` or headless Chrome |
-| 2 | Gameplan templates / presets | P2 | Pre-fill the form for common project types |
-| 3 | AI-assisted description improvement | P3 | Optional LLM call to enrich the problem statement |
-| 4 | Dark-/light-mode toggle | P3 | CSS `prefers-color-scheme` + JS toggle |
-| 5 | Shareable public link per gameplan | P3 | UUID slug + read-only view, no auth required |
+| # | Feature | Priority | Status |
+|---|---------|----------|--------|
+| 1 | Export as PDF | P2 | ⏳ candidate |
+| 2 | Gameplan templates / presets | P2 | ⏳ candidate |
+| 3 | AI-assisted description improvement | P3 | ⏳ candidate |
+| 4 | Dark-/light-mode toggle | P3 | ⏳ candidate |
+| 5 | Shareable public link per gameplan | P3 | ✅ UUID slug + read-only view + revoke; 6 tests |
