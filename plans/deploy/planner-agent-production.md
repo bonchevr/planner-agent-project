@@ -2,7 +2,7 @@
 
 > Last updated: June 2025
 > Platform: [Fly.io](https://fly.io) — Docker-native PaaS
-> Database: Fly Postgres (PostgreSQL 16, self-managed on Fly infrastructure)
+> Database: [Neon](https://neon.tech) — managed serverless PostgreSQL 16 (external, never auto-stops)
 
 ---
 
@@ -13,7 +13,7 @@
 | Deploy latest commit | `fly deploy` |
 | Tail live logs | `fly logs` |
 | SSH into app VM | `fly ssh console` |
-| Connect to Postgres | `fly postgres connect -a planner-agent-db` |
+| Connect to Neon (psql) | Connect via your Neon dashboard or `psql "$DATABASE_URL"` |
 | List secrets | `fly secrets list` |
 | Scale machines | `fly scale count 2` |
 | View releases | `fly releases` |
@@ -47,13 +47,13 @@
 |----------|-------|-------|
 | `APP_ENV` | `production` | Enables JSON logs, production error pages |
 | `PORT` | `8000` | Internal port Uvicorn listens on |
-| `WEB_WORKERS` | `2` | Safe for 256 MB VM; increase when upgrading memory |
+| `WEB_WORKERS` | `2` | Suitable for 1 GB VM; increase if upgrading and load-testing |
 
 ### 3.2 Secrets (inject with `fly secrets set` — **never** in `fly.toml`)
 
 | Secret | How to set |
 |--------|-----------|
-| `DATABASE_URL` | Set automatically by `fly postgres attach` |
+| `DATABASE_URL` | `fly secrets set DATABASE_URL="<your-neon-connection-string>"` |
 | `SECRET_KEY` | `fly secrets set SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"` |
 | `BASE_URL` | `fly secrets set BASE_URL="https://<app-name>.fly.dev"` |
 
@@ -86,41 +86,28 @@ primary_region = "lhr"         # lhr · iad · fra · sea · sin (see §14)
 fly launch --no-deploy
 ```
 
-### Step 4 — Create Fly Postgres
+### Step 4 — Create a Neon database
 
-```bash
-# Provisions a PostgreSQL 16 instance as a separate Fly app.
-# shared-cpu-1x + 256 MB + 1 GB disk = within the free allowance.
-fly postgres create \
-  --name planner-agent-db \
-  --region lhr \
-  --vm-size shared-cpu-1x \
-  --volume-size 1 \
-  --initial-cluster-size 1
-```
+1. Sign up at <https://neon.tech> (free tier, no credit card required)
+2. Create a new project and a database (e.g., `planner_agent`)
+3. Copy the **connection string** from the Neon dashboard — it looks like:  
+   `postgresql://user:password@ep-xxx.region.aws.neon.tech/planner_agent?sslmode=require`
 
-> Use the same region as your app to minimise latency.
+> Neon is serverless and never auto-stops, making it ideal for low-traffic production workloads.
 
-### Step 5 — Attach Postgres
-
-```bash
-# Automatically sets DATABASE_URL as a Fly secret on the app.
-fly postgres attach planner-agent-db --app your-unique-app-name
-```
-
-The app normalises the `postgres://` URL to `postgresql://` automatically
-(handled in `app/config.py`) so no manual adjustment is needed.
-
-### Step 6 — Set remaining secrets
+### Step 5 — Set secrets
 
 ```bash
 fly secrets set \
+  DATABASE_URL="<your-neon-connection-string>" \
   SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')" \
   BASE_URL="https://your-unique-app-name.fly.dev" \
   --app your-unique-app-name
 ```
 
-### Step 7 — Deploy
+The app normalises `postgres://` to `postgresql://` automatically (handled in `app/config.py`) so either URL format works.
+
+### Step 6 — Deploy
 
 ```bash
 fly deploy
@@ -199,11 +186,11 @@ fly secrets unset SOME_SECRET --app your-unique-app-name
 ## 9. Database Management
 
 ```bash
-# Open an interactive psql session
-fly postgres connect -a planner-agent-db
+# Connect to the Neon database via psql (requires DATABASE_URL)
+psql "$DATABASE_URL"
 
-# View Postgres logs
-fly logs --app planner-agent-db
+# Or extract the URL from Fly secrets and use it locally
+fly ssh console --app your-unique-app-name -C "printenv DATABASE_URL"
 
 # Run a one-off Alembic migration manually (normally automatic on deploy)
 fly ssh console --app your-unique-app-name -C "alembic upgrade head"
@@ -211,23 +198,14 @@ fly ssh console --app your-unique-app-name -C "alembic upgrade head"
 
 ### 9.1 Backups
 
-Fly Postgres does **not** provide automated backups by default. Recommended approach:
+Neon provides **automated daily backups** and **point-in-time restore** (PITR) on the free tier. No manual backup setup is required. You can also trigger a manual snapshot from the Neon dashboard.
+
+For an on-demand local dump:
 
 ```bash
-# Dump to a local SQL file via fly proxy
-fly proxy 5432:5432 -a planner-agent-db &
-pg_dump "postgresql://postgres:<password>@localhost:5432/planner_agent" \
-  -f backup-$(date +%Y%m%d-%H%M).sql
-kill %1  # stop the proxy
+# Export DATABASE_URL first (from fly ssh console or your local .env)
+pg_dump "$DATABASE_URL" -f backup-$(date +%Y%m%d-%H%M).sql
 ```
-
-The Postgres password is in the `DATABASE_URL` secret — extract it with:
-
-```bash
-fly ssh console --app your-unique-app-name -C "printenv DATABASE_URL"
-```
-
-For automated backups, consider adding a cron job that runs `pg_dump` and uploads to S3/R2.
 
 ---
 
@@ -262,15 +240,15 @@ Add a `deploy` job to `.github/workflows/ci.yml` after the `lint-and-test` job:
 # Scale to 2 app machines (zero-downtime rolling deploy)
 fly scale count 2 --app your-unique-app-name
 
-# Upgrade VM memory (e.g., to 512 MB for WEB_WORKERS=4)
-fly scale vm shared-cpu-1x --memory 512 --app your-unique-app-name
+# Upgrade VM memory (e.g., to 2 GB for WEB_WORKERS=4)
+fly scale vm shared-cpu-1x --memory 2048 --app your-unique-app-name
 
 # Check current machine status
 fly status --app your-unique-app-name
 ```
 
-> The free allowance covers **3 shared-cpu-1x 256 MB machines per organisation**.
-> This app uses 2 (1 app VM + 1 Postgres VM), so you can scale the app to 2 replicas at no extra cost.
+> The free allowance covers **3 shared-cpu-1x machines per organisation**.
+> This app uses 1 (app VM only — database is on Neon), so you can scale to 3 replicas at no extra cost.
 
 ---
 
@@ -331,17 +309,17 @@ Change `primary_region` in `fly.toml` and run `fly deploy` to migrate.
 
 ---
 
-## 15. Cost Breakdown (Fly.io Free Tier)
+## 15. Cost Breakdown
 
 | Resource | Free Allowance | This App Uses | Monthly Cost |
-|----------|--------------|---------------|-------------|
-| shared-cpu-1x 256 MB VMs | 3 machines | 1 app VM | $0 |
-| Fly Postgres (shared-cpu-1x 256 MB) | 3 machines | 1 Postgres VM | $0 |
+|----------|--------------|---------------|--------------|
+| shared-cpu-1x 1 GB VM | 3 machines | 1 app VM | $0 |
+| Neon PostgreSQL | Free tier (0.5 GB storage, unlimited connections) | 1 project | $0 |
 | Outbound transfer | 100 GB | < 1 GB (estimated) | $0 |
 | **Total** | | | **$0 / month** |
 
-> Pricing correct as of mid-2025. Free allowance is per Fly organisation.
-> See <https://fly.io/docs/about/pricing/> for current rates.
+> Fly.io pricing correct as of mid-2025. The 1 GB VM is within the free allowance (3 shared-cpu-1x machines per org).
+> Neon free tier: <https://neon.tech/pricing>. Fly.io pricing: <https://fly.io/docs/about/pricing/>.
 
 ---
 
@@ -361,7 +339,7 @@ Change `primary_region` in `fly.toml` and run `fly deploy` to migrate.
 
 ## 17. Performance Baseline
 
-Measured on a shared-cpu-1x 256 MB Fly machine (2 Uvicorn workers):
+Measured on a shared-cpu-1x 1 GB Fly machine (2 Uvicorn workers):
 
 | Endpoint | p50 | p99 |
 |----------|-----|-----|

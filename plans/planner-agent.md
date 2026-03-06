@@ -2,7 +2,7 @@
 
 > Generated: 5 March 2026
 > Last updated: 6 March 2026
-> Status: v0.4.0 — Phase 6 (shareable links) Complete ✅
+> Status: v0.4.0 — Phase 7 (Production Deployment) Complete ✅ — Live at <https://planner-agent.fly.dev/>
 
 ## 1. Overview
 
@@ -23,10 +23,10 @@
 | Language     | Python 3.11+            | Primary language of the workspace; strong ecosystem for web & tooling. |
 | Framework    | FastAPI + Jinja2        | Lightweight, async-ready API + server-side HTML templates; minimal JS. |
 | UI layer     | HTMX                    | Progressive form steps without a JS SPA framework; keeps it Python-first. |
-| Database     | SQLite (via SQLModel)   | Zero-config for solo dev; SQLModel gives Pydantic + SQLAlchemy in one. |
+| Database     | PostgreSQL 16 (Neon, production) / SQLite (local dev) | SQLModel gives Pydantic + SQLAlchemy in one; Neon provides managed serverless Postgres. |
 | Package mgr  | uv                      | Already used in this workspace (`scripts/uv_install.sh`).              |
 | CI/CD        | GitHub Actions          | Standard, free for personal projects.                                  |
-| Hosting      | Docker + Fly.io / Render| Simple container deploy, free tier available.                          |
+| Hosting      | Fly.io (live: planner-agent.fly.dev) | Docker-native PaaS, free tier, global edge. |
 
 ---
 
@@ -221,7 +221,7 @@ _Goal: Production-grade reliability for multi-user load._
 | 4 | Structured logging | P1 | ✅ `loguru` via `app/logging_config.py`; dev=colourised, prod=JSON; stdlib intercepted |
 | 5 | Prometheus metrics | P2 | ✅ `GET /metrics` in `health.py`; `http_requests_total` + `http_request_duration_seconds` in middleware |
 
-### Phase 6 — UX & Features  _(in progress)_
+### Phase 6 — UX & Features  _(complete)_ ✅
 _Goal: Richer output and better user experience._
 
 | # | Feature | Priority | Status |
@@ -231,3 +231,15 @@ _Goal: Richer output and better user experience._
 | 3 | AI-assisted description improvement | P3 | ⏳ candidate |
 | 4 | Dark-/light-mode toggle | P3 | ⏳ candidate |
 | 5 | Shareable public link per gameplan | P3 | ✅ UUID slug + read-only view + revoke; 6 tests |
+
+### Phase 7 — Production Deployment  _(complete)_ ✅
+_Goal: App live on a public URL with CI/CD, PostgreSQL, and resilient startup._
+
+| # | Feature | Priority | Status |
+|---|---------|----------|--------|
+| 1 | Fly.io deployment (`fly.toml`, `entrypoint.sh`) | P1 | ✅ Deployed at planner-agent.fly.dev, region `lhr` |
+| 2 | Migrate from SQLite to PostgreSQL (production) | P1 | ✅ Neon managed serverless Postgres; Alembic migrations on startup |
+| 3 | Connection pool resilience | P1 | ✅ `pool_pre_ping=True` + `pool_recycle=300` in `db.py` |
+| 4 | Wait-for-DB loop in entrypoint | P1 | ✅ 30-retry loop before Alembic; safe for cold-start |
+| 5 | GitHub Actions auto-deploy | P1 | ✅ `.github/workflows/fly-deploy.yml`; deploys only if CI passes |
+| 6 | 1 GB VM, 2 workers, auto-stop off | P2 | ✅ `fly.toml` — 1 GB shared-cpu-1x; health checks every 30 s |

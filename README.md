@@ -1,6 +1,11 @@
 # Planner Agent
 
+[![CI](https://github.com/bonchevr/planner_agent_project/actions/workflows/ci.yml/badge.svg)](https://github.com/bonchevr/planner_agent_project/actions/workflows/ci.yml)
+[![Deploy](https://github.com/bonchevr/planner_agent_project/actions/workflows/fly-deploy.yml/badge.svg)](https://github.com/bonchevr/planner_agent_project/actions/workflows/fly-deploy.yml)
+
 A lightweight Python web app that guides you through a structured project interview and generates a ready-to-use **Project Gameplan** as a Markdown document — in under 5 minutes.
+
+**Live demo:** <https://planner-agent.fly.dev/>
 
 ---
 
@@ -20,7 +25,7 @@ This is the fastest way to get running on any machine.
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url>
+git clone https://github.com/bonchevr/planner_agent_project.git
 cd planner_agent_project
 
 # 2. (Optional) create a .env file from the example
@@ -45,7 +50,7 @@ Use this when you want live code reloading while working on the app.
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url>
+git clone https://github.com/bonchevr/planner_agent_project.git
 cd planner_agent_project
 
 # 2. Create and activate a virtual environment
@@ -66,6 +71,16 @@ make dev
 ---
 
 ## URLs
+
+### Production
+
+| URL | Description |
+|-----|-------------|
+| https://planner-agent.fly.dev/ | Home page (live) |
+| https://planner-agent.fly.dev/interview | Start a new project interview |
+| https://planner-agent.fly.dev/health | Health check (JSON) |
+
+### Local development
 
 | URL | Description |
 |-----|-------------|
@@ -112,6 +127,7 @@ Copy `.env.example` to `.env` before running. All variables have safe defaults f
 | `DATABASE_URL` | `sqlite:///./data/planner.db` | SQLite (local dev) or PostgreSQL URL |
 | `SECRET_KEY` | `change-me-before-deploying` | **Change this before any public deployment** |
 | `BASE_URL` | `http://localhost:8000` | Public base URL (used for password-reset links) |
+| `WEB_WORKERS` | `2` | Number of Uvicorn workers (production uses 2) |
 
 ---
 
@@ -119,20 +135,32 @@ Copy `.env.example` to `.env` before running. All variables have safe defaults f
 
 ```
 app/
-  main.py          FastAPI app factory + router registration
-  config.py        Settings loaded from environment / .env
-  generator.py     GameplanGenerator + StackRecommender
-  models/          Pydantic + SQLModel data models
-  routes/          FastAPI routers (planner, health)
-  templates/       Jinja2 HTML templates
-  static/          CSS and static assets
-tests/             pytest test suite (61 tests, 95% coverage)
-plans/             Project roadmap, gameplans, and deployment runbook
-agents/            VS Code Copilot agent files (code-review, devops)
-Dockerfile         Production container image
-docker-compose.yml Local Docker Desktop workflow
-Makefile           Developer shortcuts
+  main.py              FastAPI app factory + router registration
+  config.py            Settings loaded from environment / .env
+  db.py                SQLAlchemy engine + session factory (pool_pre_ping enabled)
+  generator.py         GameplanGenerator + StackRecommender
+  logging_config.py    loguru structured logging (JSON in production)
+  models/              Pydantic + SQLModel data models
+  routes/              FastAPI routers (planner, auth, health)
+  templates/           Jinja2 HTML templates
+  static/              CSS and static assets
+tests/                 pytest test suite (61 tests, 95% coverage)
+plans/                 Project roadmap and deployment runbook
+agents/                VS Code Copilot agent files (code-review, devops)
+Dockerfile             Production container image
+docker-compose.yml     Local Docker Desktop workflow
+Makefile               Developer shortcuts
+entrypoint.sh          Container startup: wait-for-DB → Alembic → Uvicorn
+fly.toml               Fly.io deployment configuration
 ```
+
+---
+
+## Deployment
+
+The app is deployed on [Fly.io](https://fly.io) using a Docker container backed by [Neon](https://neon.tech) serverless PostgreSQL. Deployment is fully automated via GitHub Actions — every push to `main` that passes CI is deployed automatically.
+
+See [plans/deploy/planner-agent-production.md](plans/deploy/planner-agent-production.md) for the full deployment runbook.
 
 ---
 
