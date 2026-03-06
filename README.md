@@ -124,7 +124,7 @@ app/
   routes/          FastAPI routers (planner, health)
   templates/       Jinja2 HTML templates
   static/          CSS and static assets
-tests/             pytest test suite (28 tests, 90% coverage)
+tests/             pytest test suite (54 tests, 95% coverage)
 plans/             Project roadmap, gameplans, and deployment runbook
 agents/            VS Code Copilot agent files (code-review, devops)
 Dockerfile         Production container image
@@ -143,15 +143,13 @@ See [plans/planner-agent.md](plans/planner-agent.md) for the full project roadma
 ## Screenshots
 
 ### Home page
-![Home page — hero section with call-to-action](docs/screenshots/home.png)
+![Home page — hero section with call-to-action](docs/screenshots/Home_page.png)
 
 ### Interview form
-![Interview form — fill in project details](docs/screenshots/interview.png)
+![Interview form — fill in project details](docs/screenshots/New_plan.png)
 
 ### Generated gameplan
-![Gameplan view — rendered Markdown with download and copy options](docs/screenshots/gameplan.png)
+![Gameplan view — rendered Markdown with download and copy options](docs/screenshots/Plan_overview.png)
 
 ### My Plans list
-![Gameplans list — browse, edit, and delete saved plans](docs/screenshots/gameplans-list.png)
-
-> **Note:** Drop PNG screenshots into `docs/screenshots/` after the first live session to populate the images above.
+![Gameplans list — browse, edit, and delete saved plans](docs/screenshots/All_plans.png)
