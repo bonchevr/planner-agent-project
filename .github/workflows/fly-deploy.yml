@@ -6,10 +6,24 @@ on:
     branches:
       - main
 jobs:
+  test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: ruff check app/ tests/
+      - run: pytest tests/ -q
+
   deploy:
     name: Deploy app
+    needs: [test]   # only deploy if lint + tests pass
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    concurrency: deploy-group
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
