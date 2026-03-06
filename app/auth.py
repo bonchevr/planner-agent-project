@@ -11,7 +11,7 @@ from typing import Optional
 
 import bcrypt as _bcrypt
 from fastapi import Cookie, Depends, Form, HTTPException, Request, Response, status
-from itsdangerous import BadSignature, SignatureExpired, TimestampSigner, URLSafeSerializer
+from itsdangerous import BadSignature, SignatureExpired, TimestampSigner, URLSafeSerializer, URLSafeTimedSerializer
 from sqlmodel import Session, select
 
 from app.config import settings
@@ -151,3 +151,35 @@ def csrf_protect(
     cookie_token = request.cookies.get(_CSRF_COOKIE)
     if not _validate_csrf(cookie_token, csrf_token):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token.")
+
+
+# ---------------------------------------------------------------------------
+# Password-reset token  (time-limited, self-invalidating after password change)
+# ---------------------------------------------------------------------------
+
+_RESET_MAX_AGE = 60 * 60  # 1 hour
+_reset_serializer = URLSafeTimedSerializer(settings.secret_key, salt="password-reset")
+
+
+def generate_reset_token(user: User) -> str:
+    """Return a signed, time-limited reset token.
+
+    Embeds a snippet of the current password hash so the token is
+    automatically invalidated the moment the password is changed.
+    """
+    return _reset_serializer.dumps({"uid": user.id, "ph": user.hashed_password[:10]})
+
+
+def verify_reset_token(token: str, db: Session) -> "Optional[User]":
+    """Return the User if the token is valid and unexpired, else None."""
+    try:
+        data = _reset_serializer.loads(token, max_age=_RESET_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    user = db.get(User, data.get("uid"))
+    if not user:
+        return None
+    # Invalidate if password already changed since token was issued
+    if user.hashed_password[:10] != data.get("ph"):
+        return None
+    return user

@@ -6,6 +6,12 @@
   <h2>Sign in</h2>
   <p class="subtitle">No account yet? <a href="/register">Create one</a></p>
 
+  {% if reset_success %}
+  <div class="form-success">
+    Your password has been updated. You can now sign in.
+  </div>
+  {% endif %}
+
   {% if error %}
   <div class="form-errors">
     <strong>{{ error }}</strong>
@@ -32,5 +38,7 @@
       <button type="submit" class="btn btn-primary">Sign in &rarr;</button>
     </div>
   </form>
+
+  <p class="forgot-link"><a href="/forgot-password">Forgot your password?</a></p>
 </div>
 {% endblock %}

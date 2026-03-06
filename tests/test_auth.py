@@ -1,9 +1,9 @@
-"""Tests for authentication routes: register, login, logout."""
+"""Tests for authentication routes: register, login, logout, password reset."""
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.auth import _csrf_serializer, _signer, hash_password
+from app.auth import _csrf_serializer, _signer, generate_reset_token, hash_password, verify_reset_token
 from app.db import get_session
 from app.main import app
 from app.models.project import User
@@ -223,3 +223,132 @@ def test_login_page_redirects_when_authenticated(
     assert response.status_code == 303
     assert response.headers["location"] == "/gameplans"
     app.dependency_overrides.clear()
+
+
+# ── Password reset ────────────────────────────────────────────────────────────
+
+
+def test_forgot_password_form_renders(session: Session):
+    client, _ = _make_csrf(session)
+    response = client.get("/forgot-password")
+    assert response.status_code == 200
+    assert b"username" in response.content
+    app.dependency_overrides.clear()
+
+
+def test_forgot_password_unknown_user_still_shows_sent(session: Session):
+    """Must not reveal whether a username exists."""
+    client, csrf = _make_csrf(session)
+    response = client.post(
+        "/forgot-password",
+        data={"username": "nobody", "csrf_token": csrf},
+    )
+    assert response.status_code == 200
+    assert b"sent" not in response.content.lower() or b"reset" in response.content.lower()
+    app.dependency_overrides.clear()
+
+
+def test_forgot_password_known_user_returns_reset_url(session: Session, user: User):
+    client, csrf = _make_csrf(session)
+    response = client.post(
+        "/forgot-password",
+        data={"username": user.username, "csrf_token": csrf},
+    )
+    assert response.status_code == 200
+    assert b"/reset-password?token=" in response.content
+    app.dependency_overrides.clear()
+
+
+def test_generate_and_verify_reset_token(session: Session, user: User):
+    app.dependency_overrides[get_session] = lambda: session
+    token = generate_reset_token(user)
+    found = verify_reset_token(token, session)
+    assert found is not None
+    assert found.id == user.id
+    app.dependency_overrides.clear()
+
+
+def test_reset_token_invalidated_after_password_change(session: Session, user: User):
+    app.dependency_overrides[get_session] = lambda: session
+    token = generate_reset_token(user)
+    # Change the password — old token must now be rejected
+    user.hashed_password = hash_password("brandnewpassword")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    assert verify_reset_token(token, session) is None
+    app.dependency_overrides.clear()
+
+
+def test_reset_password_form_renders_with_valid_token(session: Session, user: User):
+    app.dependency_overrides[get_session] = lambda: session
+    token = generate_reset_token(user)
+    csrf = _csrf_serializer.dumps("csrf")
+    client = TestClient(app, cookies={"csrf_token": csrf})
+    response = client.get(f"/reset-password?token={token}")
+    assert response.status_code == 200
+    assert b"new password" in response.content.lower()
+    app.dependency_overrides.clear()
+
+
+def test_reset_password_form_redirects_without_token(session: Session):
+    app.dependency_overrides[get_session] = lambda: session
+    csrf = _csrf_serializer.dumps("csrf")
+    client = TestClient(app, cookies={"csrf_token": csrf})
+    response = client.get("/reset-password", follow_redirects=False)
+    assert response.status_code == 303
+    assert "/forgot-password" in response.headers["location"]
+    app.dependency_overrides.clear()
+
+
+def test_reset_password_success(session: Session, user: User):
+    app.dependency_overrides[get_session] = lambda: session
+    token = generate_reset_token(user)
+    csrf = _csrf_serializer.dumps("csrf")
+    client = TestClient(app, cookies={"csrf_token": csrf})
+    response = client.post(
+        "/reset-password",
+        data={
+            "token": token,
+            "password": "newpassword99",
+            "password_confirm": "newpassword99",
+            "csrf_token": csrf,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?reset=1"
+    # Verify new password works
+    session.refresh(user)
+    from app.auth import verify_password
+    assert verify_password("newpassword99", user.hashed_password)
+    app.dependency_overrides.clear()
+
+
+def test_reset_password_bad_token_returns_error(session: Session, user: User):
+    app.dependency_overrides[get_session] = lambda: session
+    csrf = _csrf_serializer.dumps("csrf")
+    client = TestClient(app, cookies={"csrf_token": csrf})
+    response = client.post(
+        "/reset-password",
+        data={
+            "token": "invalid.token.value",
+            "password": "newpassword99",
+            "password_confirm": "newpassword99",
+            "csrf_token": csrf,
+        },
+    )
+    assert response.status_code == 422
+    assert b"invalid or has expired" in response.content
+    app.dependency_overrides.clear()
+
+
+def test_login_shows_reset_success_banner(session: Session):
+    app.dependency_overrides[get_session] = lambda: session
+    csrf = _csrf_serializer.dumps("csrf")
+    client = TestClient(app, cookies={"csrf_token": csrf})
+    response = client.get("/login?reset=1")
+    assert response.status_code == 200
+    assert b"password has been updated" in response.content
+    app.dependency_overrides.clear()
+
