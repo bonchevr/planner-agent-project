@@ -18,6 +18,8 @@
 
 <form action="{{ form_action if form_action else '/generate' }}" method="post" class="interview-form">
 
+  <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
+
   <div class="form-group">
     <label for="project_name">Project name <span class="required-marker">*</span></label>
     <input type="text" id="project_name" name="project_name" required

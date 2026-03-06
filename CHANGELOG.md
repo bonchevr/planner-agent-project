@@ -7,6 +7,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.0] — 2026-03-07
+
+### Added
+- **User accounts** — `/register` and `/login` routes with username + bcrypt-hashed password. Users can sign out via the nav logout form.
+- **`User` SQLModel table** — `id`, `username` (unique, indexed), `hashed_password`, `created_at`.
+- **Per-user gameplan ownership** — `user_id` FK on `GameplanRecord`; all list/view/edit/delete routes filter by the authenticated owner.
+- **Signed session cookie** — `itsdangerous` `TimestampSigner`; 7-day max-age, `httponly`, `SameSite=Lax`, `Secure` in production.
+- **CSRF double-submit protection** — all mutating POST routes (`/generate`, `/edit`, `/delete`, `/logout`, `/register`, `/login`) validate a signed CSRF token from both cookie and form field.
+- **Ownership enforcement** — `_assert_owner()` raises HTTP 403 if a user attempts to access another user's gameplan.
+- **Auth CSS** — `.auth-card`, `.nav-username`, `.btn-nav-logout`, `.btn-nav` styles added to `style.css`.
+- **Conditional navigation** — base template shows guest links (Sign in / Get started) or authenticated links (My Plans / New Plan / username / Sign out).
+- **`app/auth.py`** — all auth utilities (hash, verify, session cookie, CSRF, FastAPI deps).
+- **`app/routes/auth.py`** — register, login, logout routes.
+- **`tests/test_auth.py`** — 16 auth tests (register, login, logout, CSRF rejection, ownership).
+
+### Changed
+- `app/routes/planner.py` — all protected routes now require `require_user`; all POST routes require `csrf_protect`; CSRF token injected into GET responses.
+- `app/templates/base.html` — conditional nav; version footer → v0.2.0.
+- `app/templates/interview.html`, `gameplans.html`, `gameplan.html` — CSRF hidden fields added to all forms.
+- `requirements.txt` — replaced `passlib[bcrypt]` with direct `bcrypt==5.0.0` dependency.
+- Test suite expanded: **44 tests** (was 28), all passing at ≥ 90% coverage.
+
+---
+
 ## [1.0.0] — 2026-03-06
 
 ### Added

@@ -12,6 +12,9 @@ _VALID_FORM = {
 }
 
 
+# ── public routes (no auth required) ──────────────────────────────────────────
+
+
 def test_health(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
@@ -24,96 +27,180 @@ def test_index_returns_200(client: TestClient):
     assert b"Planner Agent" in response.content
 
 
-def test_interview_page_returns_200(client: TestClient):
-    response = client.get("/interview")
+# ── protected routes (require auth) ───────────────────────────────────────────
+
+
+def test_interview_redirects_when_unauthenticated(client: TestClient):
+    response = client.get("/interview", follow_redirects=False)
+    assert response.status_code == 303
+    assert "/login" in response.headers["location"]
+
+
+def test_interview_page_returns_200(auth_client: TestClient, csrf_token: str):
+    response = auth_client.get("/interview")
     assert response.status_code == 200
     assert b"project_name" in response.content
 
 
-def test_generate_redirects_to_gameplan(client: TestClient):
-    response = client.post("/generate", data=_VALID_FORM, follow_redirects=False)
+def test_generate_redirects_to_gameplan(auth_client: TestClient, csrf_token: str):
+    response = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     assert response.status_code == 303
     assert response.headers["location"].startswith("/gameplan/")
 
 
-def test_generate_and_view_gameplan(client: TestClient):
-    response = client.post("/generate", data=_VALID_FORM)
+def test_generate_and_view_gameplan(auth_client: TestClient, csrf_token: str):
+    response = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+    )
     assert response.status_code == 200
     assert b"Test Project" in response.content
 
 
-def test_gameplans_list(client: TestClient):
-    client.post("/generate", data=_VALID_FORM)
-    response = client.get("/gameplans")
+def test_gameplans_list(auth_client: TestClient, csrf_token: str):
+    auth_client.post("/generate", data={**_VALID_FORM, "csrf_token": csrf_token})
+    response = auth_client.get("/gameplans")
     assert response.status_code == 200
     assert b"Test Project" in response.content
 
 
-def test_edit_gameplan_form_prefilled(client: TestClient):
-    r = client.post("/generate", data=_VALID_FORM, follow_redirects=False)
+def test_edit_gameplan_form_prefilled(auth_client: TestClient, csrf_token: str):
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     record_id = r.headers["location"].split("/")[-1]
-    response = client.get(f"/gameplan/{record_id}/edit")
+    response = auth_client.get(f"/gameplan/{record_id}/edit")
     assert response.status_code == 200
     assert b"Test Project" in response.content
 
 
-def test_edit_gameplan_save(client: TestClient):
-    r = client.post("/generate", data=_VALID_FORM, follow_redirects=False)
+def test_edit_gameplan_save(auth_client: TestClient, csrf_token: str):
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     record_id = r.headers["location"].split("/")[-1]
-    updated = {**_VALID_FORM, "project_name": "Updated Project"}
-    r2 = client.post(f"/gameplan/{record_id}/edit", data=updated, follow_redirects=False)
+    updated = {**_VALID_FORM, "project_name": "Updated Project", "csrf_token": csrf_token}
+    r2 = auth_client.post(f"/gameplan/{record_id}/edit", data=updated, follow_redirects=False)
     assert r2.status_code == 303
-    response = client.get(f"/gameplan/{record_id}")
+    response = auth_client.get(f"/gameplan/{record_id}")
     assert b"Updated Project" in response.content
 
 
-def test_delete_gameplan(client: TestClient):
-    r = client.post("/generate", data=_VALID_FORM, follow_redirects=False)
+def test_delete_gameplan(auth_client: TestClient, csrf_token: str):
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     record_id = r.headers["location"].split("/")[-1]
-    r2 = client.post(f"/gameplan/{record_id}/delete", follow_redirects=False)
+    r2 = auth_client.post(
+        f"/gameplan/{record_id}/delete",
+        data={"csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     assert r2.status_code == 303
     assert r2.headers["location"] == "/gameplans"
-    assert client.get(f"/gameplan/{record_id}").status_code == 404
+    assert auth_client.get(f"/gameplan/{record_id}").status_code == 404
 
 
-def test_download_gameplan(client: TestClient):
-    r = client.post("/generate", data=_VALID_FORM, follow_redirects=False)
+def test_download_gameplan(auth_client: TestClient, csrf_token: str):
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
     record_id = r.headers["location"].split("/")[-1]
-    response = client.get(f"/gameplan/{record_id}/download")
+    response = auth_client.get(f"/gameplan/{record_id}/download")
     assert response.status_code == 200
     assert "attachment" in response.headers.get("content-disposition", "")
     assert b"Test Project" in response.content
 
 
-def test_generate_invalid_shows_form_errors(client: TestClient):
-    response = client.post(
+def test_generate_invalid_shows_form_errors(auth_client: TestClient, csrf_token: str):
+    response = auth_client.post(
         "/generate",
         data={
             "project_name": "",
             "problem_statement": "x",
             "core_features": "y",
             "target_platform": "Web app (frontend + backend)",
+            "csrf_token": csrf_token,
         },
     )
     assert response.status_code == 422
     assert b"This field is required" in response.content
 
 
-def test_download_post_returns_attachment(client: TestClient):
-    response = client.post("/download", data=_VALID_FORM)
+def test_download_post_returns_attachment(auth_client: TestClient, csrf_token: str):
+    response = auth_client.post(
+        "/download",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+    )
     assert response.status_code == 200
     assert "attachment" in response.headers.get("content-disposition", "")
     assert b"Test Project" in response.content
 
 
-def test_download_post_missing_field_returns_422(client: TestClient):
-    response = client.post(
+def test_download_post_missing_field_returns_422(auth_client: TestClient, csrf_token: str):
+    response = auth_client.post(
         "/download",
         data={
             "project_name": "",
             "problem_statement": "x",
             "core_features": "y",
             "target_platform": "Web app (frontend + backend)",
+            "csrf_token": csrf_token,
         },
     )
     assert response.status_code == 422
+
+
+def test_csrf_rejection_on_generate(auth_client: TestClient):
+    """POST /generate with wrong CSRF token must return 403."""
+    response = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": "bad-token"},
+    )
+    assert response.status_code == 403
+
+
+def test_ownership_enforced(session, user, auth_client: TestClient, csrf_token: str):
+    """A second user cannot view the first user's gameplan."""
+    from app.auth import _signer, hash_password
+    from app.models.project import User
+
+    other = User(username="other", hashed_password=hash_password("pw"))
+    session.add(other)
+    session.commit()
+    session.refresh(other)
+
+    # Create a gameplan as user 1
+    r = auth_client.post(
+        "/generate",
+        data={**_VALID_FORM, "csrf_token": csrf_token},
+        follow_redirects=False,
+    )
+    record_id = r.headers["location"].split("/")[-1]
+
+    # Try to view it as user 2
+    other_token = _signer.sign(str(other.id)).decode()
+    from app.auth import _csrf_serializer
+    other_csrf = _csrf_serializer.dumps("csrf")
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.db import get_session
+    app.dependency_overrides[get_session] = lambda: session
+    other_client = TestClient(
+        app,
+        cookies={"session": other_token, "csrf_token": other_csrf},
+    )
+    resp = other_client.get(f"/gameplan/{record_id}")
+    assert resp.status_code == 403

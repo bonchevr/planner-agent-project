@@ -11,8 +11,18 @@
   <header class="site-header">
     <a href="/" class="site-logo">&#9678; Planner Agent</a>
     <nav>
-      <a href="/gameplans">My Plans</a>
-      <a href="/interview">New Plan</a>
+      {% if user is defined and user %}
+        <a href="/gameplans">My Plans</a>
+        <a href="/interview">New Plan</a>
+        <span class="nav-username">{{ user.username }}</span>
+        <form action="/logout" method="post" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
+          <button type="submit" class="btn-nav-logout">Sign out</button>
+        </form>
+      {% else %}
+        <a href="/login">Sign in</a>
+        <a href="/register" class="btn btn-primary btn-nav">Get started</a>
+      {% endif %}
     </nav>
   </header>
 
@@ -21,7 +31,7 @@
   </main>
 
   <footer class="site-footer">
-    <small>Planner Agent v0.1.0</small>
+    <small>Planner Agent v0.2.0</small>
   </footer>
 </body>
 </html>

@@ -29,6 +29,7 @@
       <a href="/gameplan/{{ record.id }}/download" class="btn btn-secondary">&#11015;</a>
       <form action="/gameplan/{{ record.id }}/delete" method="post" style="display:inline"
             onsubmit="return confirm('Delete &quot;{{ record.project_name }}&quot;? This cannot be undone.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
         <button type="submit" class="btn btn-danger">&#128465;</button>
       </form>
     </div>

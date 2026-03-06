@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Create account — Planner Agent{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <h2>Create account</h2>
+  <p class="subtitle">Already have an account? <a href="/login">Sign in</a></p>
+
+  {% if errors %}
+  <div class="form-errors">
+    <strong>Please fix the following:</strong>
+    <ul>
+      {% for field, msg in errors.items() %}
+      <li><strong>{{ field.replace('_', ' ').title() }}</strong>: {{ msg }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form action="/register" method="post" class="auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    <div class="form-group">
+      <label for="username">Username <span class="required-marker">*</span></label>
+      <input type="text" id="username" name="username" required
+             value="{{ prefill_username or '' }}"
+             minlength="3" maxlength="40"
+             placeholder="e.g. alice" autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password <span class="required-marker">*</span></label>
+      <input type="password" id="password" name="password" required
+             minlength="8" placeholder="At least 8 characters"
+             autocomplete="new-password" />
+    </div>
+
+    <div class="form-group">
+      <label for="password_confirm">Confirm password <span class="required-marker">*</span></label>
+      <input type="password" id="password_confirm" name="password_confirm" required
+             minlength="8" placeholder="Repeat your password"
+             autocomplete="new-password" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Create account &rarr;</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

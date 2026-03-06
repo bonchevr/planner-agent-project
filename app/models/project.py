@@ -4,8 +4,21 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
+
+# ── User ─────────────────────────────────────────────────────────────────
+
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(unique=True, index=True, min_length=3, max_length=40)
+    hashed_password: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    gameplans: list["GameplanRecord"] = Relationship(back_populates="owner")
+
+
+# ── ProjectInput (form validation) ───────────────────────────────────────
 
 class ProjectInput(BaseModel):
     project_name: str
@@ -31,6 +44,8 @@ class ProjectInput(BaseModel):
         return slug.strip("-")
 
 
+# ── GameplanRecord ────────────────────────────────────────────────────────
+
 class GameplanRecord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     slug: str = Field(index=True)
@@ -45,6 +60,9 @@ class GameplanRecord(SQLModel, table=True):
     gameplan_md: str
     stack_json: str  # JSON-encoded dict[str, str]
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
+    owner: Optional[User] = Relationship(back_populates="gameplans")
 
     def stack(self) -> dict[str, str]:
         return json.loads(self.stack_json)

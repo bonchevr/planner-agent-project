@@ -35,8 +35,7 @@ make compose-up
 make compose-down
 ```
 
-The SQLite database is persisted in `planner.db` on your host via a volume
-mount, so your data survives container restarts.
+The SQLite database is persisted in the `db-data` Docker volume (`/app/data/planner.db` inside the container), so your data survives container restarts.
 
 ---
 
@@ -109,7 +108,7 @@ Copy `.env.example` to `.env` before running. All variables have safe defaults f
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `development` | Set to `production` when deploying |
-| `DATABASE_URL` | `sqlite:///./planner.db` | Path to the SQLite database file |
+| `DATABASE_URL` | `sqlite:///./data/planner.db` | Path to the SQLite database file |
 | `SECRET_KEY` | `change-me-before-deploying` | **Change this before any public deployment** |
 
 ---
@@ -138,3 +137,21 @@ Makefile           Developer shortcuts
 ## Roadmap
 
 See [plans/planner-agent.md](plans/planner-agent.md) for the full project roadmap and phase status.
+
+---
+
+## Screenshots
+
+### Home page
+![Home page — hero section with call-to-action](docs/screenshots/home.png)
+
+### Interview form
+![Interview form — fill in project details](docs/screenshots/interview.png)
+
+### Generated gameplan
+![Gameplan view — rendered Markdown with download and copy options](docs/screenshots/gameplan.png)
+
+### My Plans list
+![Gameplans list — browse, edit, and delete saved plans](docs/screenshots/gameplans-list.png)
+
+> **Note:** Drop PNG screenshots into `docs/screenshots/` after the first live session to populate the images above.

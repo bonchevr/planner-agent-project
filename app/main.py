@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.db import create_db_and_tables
+from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
 from app.routes.planner import router as planner_router
 
@@ -39,5 +40,6 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(planner_router)
 

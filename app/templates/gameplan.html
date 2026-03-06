@@ -9,7 +9,8 @@
     <a href="/gameplans" class="btn btn-secondary">&#8592; All plans</a>
     <a href="/interview" class="btn btn-secondary">&#43; New plan</a>
     <form action="/gameplan/{{ record.id }}/delete" method="post" style="display:inline"
-          onsubmit="return confirm('Delete this gameplan? This cannot be undone.')">  
+          onsubmit="return confirm('Delete this gameplan? This cannot be undone.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
       <button type="submit" class="btn btn-danger">&#128465; Delete</button>
     </form>
   </div>

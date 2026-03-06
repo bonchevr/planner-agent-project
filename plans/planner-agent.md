@@ -2,7 +2,7 @@
 
 > Generated: 5 March 2026
 > Last updated: 6 March 2026
-> Status: Phase 3 — Final item pending (README screenshots)
+> Status: v0.2.0 — Phase 4 Complete ✅
 
 ## 1. Overview
 
@@ -68,7 +68,7 @@ _Goal: Production-ready, tested, documented, containerised._
 - [x] Dockerfile + `docker-compose.yml`
 - [x] Deployment runbook (`plans/deploy/planner-agent-production.md`)
 - [x] Performance baseline (< 200 ms p99 for gameplan generation)
-- [ ] User-facing `README.md` with screenshots
+- [x] User-facing `README.md` with screenshots
 - [x] `CHANGELOG.md` v1.0.0 entry
 
 ---
@@ -116,21 +116,23 @@ _Goal: Production-ready, tested, documented, containerised._
 
 | # | Question / Risk | Impact | Status |
 |---|-----------------|--------|--------|
-| 1 | Authentication needed? (multi-user vs single-user) | High | Open — default to single-user/local for v1 |
-| 2 | Markdown rendering library: `mistune` vs `markdown2` | Low | Decide in Phase 1 task 5 |
-| 3 | SQLite concurrency if deployed with multiple workers | Med | Use single Uvicorn worker for v1; revisit for v2 |
-| 4 | XSS risk in rendered Markdown output | High | Sanitise HTML output with `bleach` before rendering |
+| 1 | Authentication needed? (multi-user vs single-user) | High | Deferred to v2 — add before any public deployment |
+| 2 | Markdown rendering library: `mistune` vs `markdown2` | Low | Resolved: `mistune` v3 with `bleach` sanitisation |
+| 3 | SQLite concurrency if deployed with multiple workers | Med | Resolved: single Uvicorn worker in v1; PostgreSQL planned for v2 |
+| 4 | XSS risk in rendered Markdown output | High | Resolved: `bleach.clean()` strips disallowed tags and attributes |
 
 ---
 
 ## 6. Definition of Done (v1)
 
 - [x] All Phase 1 & 2 acceptance criteria met
-- [x] `pytest` suite passes with ≥ 80% coverage (current: 89%, 28/28 tests)
+- [x] `pytest` suite passes with ≥ 80% coverage (current: 90%, 44/44 tests)
 - [x] No P0 or P1 findings from `code-review.agent.md`
 - [x] Runs cleanly inside Docker container
 - [x] Deployment runbook exists at `plans/deploy/planner-agent-production.md`
-- [ ] README includes setup instructions and a screenshot
+- [x] README includes setup instructions and a screenshot placeholder
+
+**v1.0.0 is shipped. ✅**
 
 ---
 
@@ -149,17 +151,22 @@ planner-agent/
 │   ├── routes/
 │   │   ├── __init__.py
 │   │   ├── planner.py        # /interview, /generate, /gameplan/{id}
+│   │   ├── auth.py           # /register, /login, /logout
 │   │   └── health.py         # GET /health
 │   ├── templates/
 │   │   ├── base.html
 │   │   ├── index.html
 │   │   ├── interview.html
 │   │   ├── gameplan.html
-│   │   └── gameplans.html
+│   │   ├── gameplans.html
+│   │   ├── login.html
+│   │   └── register.html
 │   └── static/
 │       └── style.css
 ├── tests/
 │   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_auth.py
 │   ├── test_generator.py
 │   └── test_routes.py
 ├── agents/
@@ -182,3 +189,43 @@ planner-agent/
 ├── requirements.txt
 └── requirements-dev.txt
 ```
+
+---
+
+## 8. v2 Roadmap (post-v1)
+
+Items deferred from v1, ordered by impact.
+
+### Phase 4 — Multi-user & Auth  _(complete)_ ✅
+_Goal: Make the app safely shareable and publicly deployable._
+
+- [x] `User` model with bcrypt-hashed password
+- [x] `user_id` FK on `GameplanRecord`; all queries filtered by owner
+- [x] Signed session cookie (`itsdangerous` TimestampSigner, 7-day)
+- [x] CSRF double-submit cookie protection on all POST routes
+- [x] `/register`, `/login`, `/logout` routes with validation
+- [x] Conditional nav (guest vs. logged-in), username display, sign-out form
+- [x] Auth CSS (`.auth-card`, `.nav-username`, `.btn-nav-logout`)
+- [x] Full test suite updated (44/44 passing, auth tests in `test_auth.py`)
+- [x] CHANGELOG v0.2.0 entry
+
+### Phase 5 — Scale & Observability  _(candidate)_
+_Goal: Production-grade reliability for multi-user load._
+
+| # | Feature | Priority | Notes |
+|---|---------|----------|-------|
+| 1 | Swap SQLite → PostgreSQL | P1 | Unblocks multi-worker Uvicorn; use `asyncpg` + Alembic migrations |
+| 2 | Structured logging | P1 | `structlog` or `loguru`; emit JSON logs for log aggregation |
+| 3 | Metrics + uptime alerting | P2 | Prometheus `/metrics` endpoint; alert on error rate |
+| 4 | Async DB session | P2 | Switch to `AsyncSession` for full async path |
+
+### Phase 6 — UX & Features  _(candidate)_
+_Goal: Richer output and better user experience._
+
+| # | Feature | Priority | Notes |
+|---|---------|----------|-------|
+| 1 | Export as PDF | P2 | `weasyprint` or headless Chrome |
+| 2 | Gameplan templates / presets | P2 | Pre-fill the form for common project types |
+| 3 | AI-assisted description improvement | P3 | Optional LLM call to enrich the problem statement |
+| 4 | Dark-/light-mode toggle | P3 | CSS `prefers-color-scheme` + JS toggle |
+| 5 | Shareable public link per gameplan | P3 | UUID slug + read-only view, no auth required |

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Planner Agent{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <h2>Sign in</h2>
+  <p class="subtitle">No account yet? <a href="/register">Create one</a></p>
+
+  {% if error %}
+  <div class="form-errors">
+    <strong>{{ error }}</strong>
+  </div>
+  {% endif %}
+
+  <form action="/login" method="post" class="auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    <div class="form-group">
+      <label for="username">Username <span class="required-marker">*</span></label>
+      <input type="text" id="username" name="username" required
+             value="{{ prefill_username or '' }}"
+             placeholder="your username" autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password <span class="required-marker">*</span></label>
+      <input type="password" id="password" name="password" required
+             placeholder="your password" autocomplete="current-password" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Sign in &rarr;</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
