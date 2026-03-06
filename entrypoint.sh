@@ -8,8 +8,9 @@ chown -R appuser:appgroup /app/data
 # Works with both SQLite (local dev) and PostgreSQL (Docker/production).
 gosu appuser alembic upgrade head
 
-# Start with multiple workers — safe now that PostgreSQL handles concurrency.
+# WEB_WORKERS defaults to 2 (safe for 256 MB); override in docker-compose or
+# Fly.io [env] for larger machines.
 exec gosu appuser uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
-    --workers 4
+    --workers "${WEB_WORKERS:-2}"

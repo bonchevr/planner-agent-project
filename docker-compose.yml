@@ -23,6 +23,7 @@ services:
     environment:
       - APP_ENV=development
       - DATABASE_URL=postgresql://planner:planner@db:5432/planner
+      - WEB_WORKERS=4
     depends_on:
       db:
         condition: service_healthy
