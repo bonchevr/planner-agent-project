@@ -24,18 +24,20 @@
 
 <div class="gameplan-download">
   <a href="/gameplan/{{ record.id }}/download" class="btn btn-primary">&#11015; Download .md</a>
-  <button class="btn btn-secondary" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
+  <button class="btn btn-secondary" id="copy-btn" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
 </div>
 
-<pre id="gameplan-raw" class="gameplan-raw">{{ record.gameplan_md }}</pre>
+<div class="gameplan-body">
+  {{ record.gameplan_md | render_md | safe }}
+</div>
 
 <script>
 function copyGameplan() {
-  const text = document.getElementById('gameplan-raw').innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target;
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => { btn.textContent = '📋 Copy to clipboard'; }, 2000);
+  const raw = {{ record.gameplan_md | tojson }};
+  navigator.clipboard.writeText(raw).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '\u2705 Copied!';
+    setTimeout(() => { btn.textContent = '\ud83d\udccb Copy to clipboard'; }, 2000);
   });
 }
 </script>

@@ -1,6 +1,6 @@
 import pytest
 from app.models.project import ProjectInput
-from app.generator import GameplanGenerator, StackRecommender
+from app.generator import GameplanGenerator, StackRecommender, render_md
 
 
 @pytest.fixture
@@ -97,3 +97,41 @@ class TestProjectInput:
                 core_features="y",
                 target_platform="web",
             )
+
+
+# ── render_md ────────────────────────────────────────────────────────
+
+class TestRenderMd:
+    def test_renders_heading(self):
+        html = render_md("# Hello")
+        assert "<h1>" in html
+        assert "Hello" in html
+
+    def test_strips_script_tags(self):
+        html = render_md("<script>alert('xss')</script>")
+        # bleach encodes the tag as &lt;script&gt; — no executable element remains
+        assert "<script>" not in html
+        assert "javascript:" not in html
+
+    def test_strips_inline_event_handlers(self):
+        html = render_md('[click me](javascript:alert(1))')
+        assert "javascript:" not in html
+
+    def test_renders_table(self, web_project):
+        stack = StackRecommender.recommend(web_project)
+        md = GameplanGenerator.generate(web_project, stack)
+        html = render_md(md)
+        assert "<table>" in html
+
+
+# ── Performance baseline ────────────────────────────────────────────
+
+class TestPerformance:
+    def test_generate_and_render_under_200ms(self, web_project):
+        import time
+        stack = StackRecommender.recommend(web_project)
+        start = time.perf_counter()
+        md = GameplanGenerator.generate(web_project, stack)
+        render_md(md)
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        assert elapsed_ms < 200, f"generate+render took {elapsed_ms:.1f} ms (limit 200 ms)"

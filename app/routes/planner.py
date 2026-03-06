@@ -7,11 +7,12 @@ from pydantic import ValidationError
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.generator import GameplanGenerator, StackRecommender
+from app.generator import GameplanGenerator, StackRecommender, render_md
 from app.models.project import GameplanRecord, ProjectInput
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["render_md"] = render_md
 
 
 # ── helpers ───────────────────────────────────────────────────────────────

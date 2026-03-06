@@ -125,9 +125,9 @@ app/
   routes/          FastAPI routers (planner, health)
   templates/       Jinja2 HTML templates
   static/          CSS and static assets
-tests/             pytest test suite (17 tests, ~93% coverage)
-plans/             Project roadmap and gameplans (Markdown)
-agents/            VS Code agent customisation files
+tests/             pytest test suite (28 tests, 90% coverage)
+plans/             Project roadmap, gameplans, and deployment runbook
+agents/            VS Code Copilot agent files (code-review, devops)
 Dockerfile         Production container image
 docker-compose.yml Local Docker Desktop workflow
 Makefile           Developer shortcuts

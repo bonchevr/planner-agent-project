@@ -122,7 +122,7 @@ If a `plans/*.md` file exists for this project, read its
 After the report, offer:
 - The single most important fix to make right now
 - Whether to re-run this review after fixes are applied
-- A suggestion to run the `deploy.agent.md` once all P0/P1 issues are resolved
+- A reminder to follow the deployment runbook at `plans/deploy/planner-agent-production.md` once all P0/P1 issues are resolved
 
 ---
 

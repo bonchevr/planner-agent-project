@@ -2,7 +2,33 @@ from __future__ import annotations
 
 from datetime import date
 
+import bleach
+import mistune
+
 from app.models.project import ProjectInput
+
+# ---------------------------------------------------------------------------
+# Markdown renderer (for the gameplan viewer)
+# ---------------------------------------------------------------------------
+
+_ALLOWED_TAGS: frozenset[str] = frozenset({
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "p", "ul", "ol", "li", "blockquote", "pre", "code",
+    "strong", "em", "a", "hr", "br",
+    "table", "thead", "tbody", "tr", "th", "td",
+})
+_ALLOWED_ATTRS: dict[str, list[str]] = {
+    "a": ["href", "title"],
+    "td": ["align"],
+    "th": ["align"],
+}
+_md_renderer = mistune.create_markdown(plugins=["table"])
+
+
+def render_md(text: str) -> str:
+    """Render Markdown to sanitised HTML (safe to inject with |safe in templates)."""
+    raw_html = _md_renderer(text)
+    return bleach.clean(raw_html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
 
 # ---------------------------------------------------------------------------
 # Stack recommendation

@@ -121,7 +121,7 @@ For shell scripts, run them with `bash -x` in a dry-run mode where possible.
 After completing the task:
 - State exactly which files were created or changed, with line references.
 - Call out any security considerations or manual follow-up steps required.
-- If the change is deployment-relevant, suggest running `deploy.agent.md`.
+- If the change is deployment-relevant, point to the deployment runbook at `plans/deploy/planner-agent-production.md`.
 
 ---
 

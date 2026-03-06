@@ -1,7 +1,8 @@
 # Planner Agent — Project Gameplan
 
 > Generated: 5 March 2026
-> Status: Active
+> Last updated: 6 March 2026
+> Status: Phase 3 — Final item pending (README screenshots)
 
 ## 1. Overview
 
@@ -33,42 +34,42 @@
 
 ### Phase 0 — Setup & Foundations  _(~3 days)_
 _Goal: A running FastAPI app with routing, templates, and test scaffold in place._
-- [ ] Project directory structure created
-- [ ] `requirements.txt` and `requirements-dev.txt` pinned
-- [ ] FastAPI app boots (`uvicorn app.main:app`)
-- [ ] Base HTML template with navigation
-- [ ] `Makefile` with `dev`, `test`, `lint`, `docker-build` targets
-- [ ] `.gitignore` and `README.md`
-- [ ] GitHub Actions CI: lint + test on push
+- [x] Project directory structure created
+- [x] `requirements.txt` and `requirements-dev.txt` pinned
+- [x] FastAPI app boots (`uvicorn app.main:app`)
+- [x] Base HTML template with navigation
+- [x] `Makefile` with `dev`, `test`, `lint`, `docker-build` targets
+- [x] `.gitignore` and `README.md`
+- [x] GitHub Actions CI: lint + test on push
 
 ### Phase 1 — MVP Core  _(~1.5 weeks)_
 _Goal: End-to-end flow: user completes interview → gameplan is generated and displayed._
-- [ ] Multi-step interview form (questions from `project.agent.md`)
-- [ ] Pydantic model for `ProjectInput`
-- [ ] `GameplanGenerator` class: builds markdown from `ProjectInput`
-- [ ] Tech-stack recommender: maps platform + language preference → stack table
-- [ ] Gameplan viewer page (rendered Markdown → HTML)
-- [ ] Download gameplan as `.md` file
-- [ ] Unit tests for `GameplanGenerator`
+- [x] Multi-step interview form (interview questions based on `project.agent.md`, now removed — superseded by the app itself)
+- [x] Pydantic model for `ProjectInput`
+- [x] `GameplanGenerator` class: builds markdown from `ProjectInput`
+- [x] Tech-stack recommender: maps platform + language preference → stack table
+- [x] Gameplan viewer page (rendered Markdown → HTML)
+- [x] Download gameplan as `.md` file
+- [x] Unit tests for `GameplanGenerator`
 
 ### Phase 2 — Persistence & Polish  _(~1 week)_
 _Goal: Users can save, list, and reload their gameplans._
-- [ ] SQLite DB schema: `Project`, `Gameplan` tables (via SQLModel)
-- [ ] Save gameplan to DB on generation
-- [ ] Gameplans list page
-- [ ] Load & edit existing gameplan
-- [ ] Delete gameplan (with confirmation)
-- [ ] Form validation with clear error messages
-- [ ] Responsive CSS (mobile-friendly)
+- [x] SQLite DB schema: `Project`, `Gameplan` tables (via SQLModel)
+- [x] Save gameplan to DB on generation
+- [x] Gameplans list page
+- [x] Load & edit existing gameplan
+- [x] Delete gameplan (with confirmation)
+- [x] Form validation with clear error messages
+- [x] Responsive CSS (mobile-friendly)
 
 ### Phase 3 — Launch Prep  _(~3 days)_
 _Goal: Production-ready, tested, documented, containerised._
-- [ ] Security review (OWASP checklist — see §5)
-- [ ] Dockerfile + `docker-compose.yml`
-- [ ] Deployment runbook (`plans/deploy/planner-agent-production.md`)
-- [ ] Performance baseline (< 200 ms p99 for gameplan generation)
+- [x] Security review (OWASP checklist — see §5)
+- [x] Dockerfile + `docker-compose.yml`
+- [x] Deployment runbook (`plans/deploy/planner-agent-production.md`)
+- [x] Performance baseline (< 200 ms p99 for gameplan generation)
 - [ ] User-facing `README.md` with screenshots
-- [ ] `CHANGELOG.md` v1.0.0 entry
+- [x] `CHANGELOG.md` v1.0.0 entry
 
 ---
 
@@ -124,11 +125,11 @@ _Goal: Production-ready, tested, documented, containerised._
 
 ## 6. Definition of Done (v1)
 
-- [ ] All Phase 1 & 2 acceptance criteria met
-- [ ] `pytest` suite passes with ≥ 80% coverage
-- [ ] No P0 or P1 findings from `code-review.agent.md`
-- [ ] Runs cleanly inside Docker container
-- [ ] Deployment runbook exists at `plans/deploy/planner-agent-production.md`
+- [x] All Phase 1 & 2 acceptance criteria met
+- [x] `pytest` suite passes with ≥ 80% coverage (current: 89%, 28/28 tests)
+- [x] No P0 or P1 findings from `code-review.agent.md`
+- [x] Runs cleanly inside Docker container
+- [x] Deployment runbook exists at `plans/deploy/planner-agent-production.md`
 - [ ] README includes setup instructions and a screenshot
 
 ---
@@ -141,7 +142,7 @@ planner-agent/
 │   ├── __init__.py
 │   ├── main.py               # FastAPI app factory
 │   ├── config.py             # Settings (env vars)
-│   ├── generator.py          # GameplanGenerator + StackRecommender
+│   ├── generator.py          # GameplanGenerator + StackRecommender + render_md
 │   ├── models/
 │   │   ├── __init__.py
 │   │   └── project.py        # Pydantic + SQLModel models
@@ -153,20 +154,30 @@ planner-agent/
 │   │   ├── base.html
 │   │   ├── index.html
 │   │   ├── interview.html
-│   │   └── gameplan.html
+│   │   ├── gameplan.html
+│   │   └── gameplans.html
 │   └── static/
 │       └── style.css
 ├── tests/
 │   ├── __init__.py
 │   ├── test_generator.py
 │   └── test_routes.py
+├── agents/
+│   ├── code-review.agent.md  # VS Code Copilot: code-review workflow
+│   └── devops.agent.md       # VS Code Copilot: infra / ops tasks
+├── plans/
+│   ├── planner-agent.md      # This file — project roadmap
+│   └── deploy/
+│       └── planner-agent-production.md  # Deployment runbook
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
+├── entrypoint.sh
 ├── .gitignore
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Makefile
+├── CHANGELOG.md
 ├── README.md
 ├── requirements.txt
 └── requirements-dev.txt

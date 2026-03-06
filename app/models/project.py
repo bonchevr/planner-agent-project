@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
@@ -44,7 +44,7 @@ class GameplanRecord(SQLModel, table=True):
     constraints: str = ""
     gameplan_md: str
     stack_json: str  # JSON-encoded dict[str, str]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def stack(self) -> dict[str, str]:
         return json.loads(self.stack_json)
