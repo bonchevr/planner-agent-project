@@ -7,6 +7,43 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.0] — 2026-03-06
+
+### Added
+- **PostgreSQL support** — `psycopg2-binary` added; `DATABASE_URL` in `docker-compose.yml` now points to a bundled `postgres:16-alpine` service.
+- **Alembic migrations** — `alembic/` directory with `env.py`, `script.py.mako`, and an initial migration (`001_initial_schema`) that creates the `user` and `gameplanrecord` tables in the correct schema. Migration runs automatically on container start via `entrypoint.sh`.
+- **Multi-worker Uvicorn** — container now starts 4 workers (was 1); safe because PostgreSQL handles concurrent connections.
+- **Structured logging (`loguru`)** — `app/logging_config.py` wires loguru as the single log pipeline. Development: colourised output; production: JSON to stdout for log aggregators. All stdlib logging (uvicorn, SQLAlchemy) is intercepted and forwarded.
+- **Prometheus metrics** — `GET /metrics` endpoint (Prometheus text format, excluded from Swagger UI) exposes `http_requests_total` (counter, labelled by method/path/status) and `http_request_duration_seconds` (histogram) tracked in `SecurityHeadersMiddleware`.
+- `prometheus-client==0.24.1` added to `requirements.txt`.
+- `alembic==1.18.4` and `Mako` added to `requirements.txt`.
+- `loguru==0.7.3` added to `requirements.txt`.
+- `psycopg2-binary==2.9.11` added to `requirements.txt`.
+- `BASE_URL` added to `app/config.py` and `.env.example`.
+
+### Changed
+- `docker-compose.yml` — replaced SQLite named volume with a `postgres:16-alpine` service (`postgres-data` volume). App service gains `depends_on: db: condition: service_healthy` to wait for DB readiness.
+- `Dockerfile` — copies `alembic/` and `alembic.ini` into the image.
+- `entrypoint.sh` — runs `alembic upgrade head` before starting uvicorn; workers increased from 1 → 4.
+- `app/db.py` — `connect_args` is now conditional: `{"check_same_thread": False}` for SQLite only (PostgreSQL rejects this argument).
+- `app/routes/auth.py` — replaced stdlib `logging.getLogger` with `from loguru import logger`.
+- `app/routes/health.py` — added `/metrics` endpoint.
+- Test suite: **55 tests** (was 54), `test_metrics_returns_prometheus_text` added.
+
+---
+
+## [0.2.1] — 2026-03-06
+
+### Added
+- **Forgot / reset password** — `GET/POST /forgot-password` and `GET/POST /reset-password` routes. Reset token is a 1-hour `URLSafeTimedSerializer` JWT that embeds the first 10 chars of the current password hash (token self-invalidates after password change). Development mode: reset link displayed on screen; production: logged only. Templates: `forgot_password.html`, `reset_password.html`; login page shows success banner on redirect.
+- 10 new tests covering the full reset flow (no username enumeration, token verify, success redirect, banner display).
+
+### Fixed
+- **CSRF cookie delivery** — FastAPI does not merge cookies set on an injected `Response` parameter into a returned `TemplateResponse`. All GET handlers now build the `TemplateResponse` first, then call `set_csrf_cookie(resp, token)` on the actual returned object. The injected `Response` dependency was removed from all affected routes.
+- **Docker schema migration** — existing Docker named volume contained an old SQLite DB missing the `user_id` column. Applied `ALTER TABLE gameplanrecord ADD COLUMN user_id INTEGER REFERENCES user(id)` and created the missing index to unblock logins without data loss.
+
+---
+
 ## [0.2.0] — 2026-03-07
 
 ### Added

@@ -21,6 +21,13 @@ def test_health(client: TestClient):
     assert response.json()["status"] == "ok"
 
 
+def test_metrics_returns_prometheus_text(client: TestClient):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    assert b"http_requests_total" in response.content
+
+
 def test_index_returns_200(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200

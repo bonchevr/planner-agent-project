@@ -2,7 +2,7 @@
 
 > Generated: 5 March 2026
 > Last updated: 6 March 2026
-> Status: v0.2.0 — Phase 4 Complete ✅
+> Status: v0.3.0 — Phase 5 Complete ✅
 
 ## 1. Overview
 
@@ -206,18 +206,20 @@ _Goal: Make the app safely shareable and publicly deployable._
 - [x] `/register`, `/login`, `/logout` routes with validation
 - [x] Conditional nav (guest vs. logged-in), username display, sign-out form
 - [x] Auth CSS (`.auth-card`, `.nav-username`, `.btn-nav-logout`)
-- [x] Full test suite updated (44/44 passing, auth tests in `test_auth.py`)
-- [x] CHANGELOG v0.2.0 entry
+- [x] Forgot password / password reset (signed 1-hour token, dev link on screen)
+- [x] Full test suite updated (54/54 passing, auth + reset tests in `test_auth.py`)
+- [x] CHANGELOG v0.2.0 / v0.2.1 entries
 
-### Phase 5 — Scale & Observability  _(candidate)_
+### Phase 5 — Scale & Observability  _(complete)_ ✅
 _Goal: Production-grade reliability for multi-user load._
 
-| # | Feature | Priority | Notes |
-|---|---------|----------|-------|
-| 1 | Swap SQLite → PostgreSQL | P1 | Unblocks multi-worker Uvicorn; use `asyncpg` + Alembic migrations |
-| 2 | Structured logging | P1 | `structlog` or `loguru`; emit JSON logs for log aggregation |
-| 3 | Metrics + uptime alerting | P2 | Prometheus `/metrics` endpoint; alert on error rate |
-| 4 | Async DB session | P2 | Switch to `AsyncSession` for full async path |
+| # | Feature | Priority | Status |
+|---|---------|----------|--------|
+| 1 | Swap SQLite → PostgreSQL | P1 | ✅ `psycopg2-binary` + `postgres:16-alpine` in Compose; `connect_args` conditional in `db.py` |
+| 2 | Alembic migrations | P1 | ✅ `alembic/` setup with `env.py` importing SQLModel metadata; `001_initial_schema` migration; `alembic upgrade head` in `entrypoint.sh` |
+| 3 | Multi-worker Uvicorn | P1 | ✅ 4 workers in `entrypoint.sh` (safe with PostgreSQL) |
+| 4 | Structured logging | P1 | ✅ `loguru` via `app/logging_config.py`; dev=colourised, prod=JSON; stdlib intercepted |
+| 5 | Prometheus metrics | P2 | ✅ `GET /metrics` in `health.py`; `http_requests_total` + `http_request_duration_seconds` in middleware |
 
 ### Phase 6 — UX & Features  _(candidate)_
 _Goal: Richer output and better user experience._

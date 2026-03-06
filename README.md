@@ -35,7 +35,7 @@ make compose-up
 make compose-down
 ```
 
-The SQLite database is persisted in the `db-data` Docker volume (`/app/data/planner.db` inside the container), so your data survives container restarts.
+The database is persisted in the `postgres-data` Docker volume. Your data survives container restarts.
 
 ---
 
@@ -72,6 +72,7 @@ make dev
 | http://localhost:8000 | Home page |
 | http://localhost:8000/interview | Start a new project interview |
 | http://localhost:8000/health | Health check (JSON) |
+| http://localhost:8000/metrics | Prometheus metrics scrape endpoint |
 | http://localhost:8000/docs | Interactive API docs (Swagger UI) |
 
 ---
@@ -108,8 +109,9 @@ Copy `.env.example` to `.env` before running. All variables have safe defaults f
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `development` | Set to `production` when deploying |
-| `DATABASE_URL` | `sqlite:///./data/planner.db` | Path to the SQLite database file |
+| `DATABASE_URL` | `sqlite:///./data/planner.db` | SQLite (local dev) or PostgreSQL URL |
 | `SECRET_KEY` | `change-me-before-deploying` | **Change this before any public deployment** |
+| `BASE_URL` | `http://localhost:8000` | Public base URL (used for password-reset links) |
 
 ---
 
@@ -124,7 +126,7 @@ app/
   routes/          FastAPI routers (planner, health)
   templates/       Jinja2 HTML templates
   static/          CSS and static assets
-tests/             pytest test suite (54 tests, 95% coverage)
+tests/             pytest test suite (55 tests, 95% coverage)
 plans/             Project roadmap, gameplans, and deployment runbook
 agents/            VS Code Copilot agent files (code-review, devops)
 Dockerfile         Production container image

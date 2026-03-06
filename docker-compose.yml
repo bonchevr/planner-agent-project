@@ -1,4 +1,18 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: planner
+      POSTGRES_PASSWORD: planner
+      POSTGRES_DB: planner
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     ports:
@@ -8,11 +22,11 @@ services:
         required: false
     environment:
       - APP_ENV=development
-    volumes:
-      # Named volume — Docker creates and manages the directory automatically.
-      # The SQLite file lives at /app/data/planner.db inside the container.
-      - db-data:/app/data
+      - DATABASE_URL=postgresql://planner:planner@db:5432/planner
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  db-data:
+  postgres-data:

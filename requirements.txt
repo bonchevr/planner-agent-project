@@ -8,3 +8,8 @@ bleach==6.2.0
 pydantic-settings==2.8.1
 bcrypt==5.0.0
 itsdangerous==2.2.0
+# Phase 5 — Scale & Observability
+psycopg2-binary==2.9.11
+alembic==1.18.4
+loguru==0.7.3
+prometheus-client==0.24.1

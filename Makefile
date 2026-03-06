@@ -23,3 +23,7 @@ compose-up:
 
 compose-down:
 	docker compose down
+
+# Also removes all volumes (database data will be lost — use with caution).
+compose-down-volumes:
+	docker compose down -v

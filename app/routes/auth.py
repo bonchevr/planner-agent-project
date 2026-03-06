@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -21,7 +21,6 @@ from app.config import settings
 from app.db import get_session
 from app.models.project import User
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
@@ -171,6 +170,7 @@ async def forgot_password_submit(
         {
             "csrf_token": token,
             "sent": True,
+            "app_env": settings.app_env,
             # Only expose the link in non-production (dev/staging convenience)
             "reset_url": reset_url if settings.app_env != "production" else None,
         },
