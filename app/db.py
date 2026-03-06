@@ -8,6 +8,8 @@ _connect_args = {"check_same_thread": False} if settings.database_url.startswith
 engine = create_engine(
     settings.database_url,
     connect_args=_connect_args,
+    pool_pre_ping=True,   # discard stale connections before use (fixes Fly proxy drops)
+    pool_recycle=300,     # recycle connections after 5 min to avoid idle disconnects
 )
 
 
