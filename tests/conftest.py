@@ -33,7 +33,7 @@ def client_fixture(session: Session):
 
 @pytest.fixture(name="user")
 def user_fixture(session: Session) -> User:
-    u = User(username="testuser", hashed_password=hash_password("password123"))
+    u = User(username="testuser", email="testuser@example.com", hashed_password=hash_password("password123"))
     session.add(u)
     session.commit()
     session.refresh(u)

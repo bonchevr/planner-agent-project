@@ -33,6 +33,7 @@ def test_register_success(session: Session):
         "/register",
         data={
             "username": "alice",
+            "email": "alice@example.com",
             "password": "securepass",
             "password_confirm": "securepass",
             "csrf_token": csrf,
@@ -43,11 +44,12 @@ def test_register_success(session: Session):
     assert response.headers["location"] == "/gameplans"
     user = session.exec(__import__("sqlmodel").select(User).where(User.username == "alice")).first()
     assert user is not None
+    assert user.email == "alice@example.com"
     app.dependency_overrides.clear()
 
 
 def test_register_duplicate_username(session: Session):
-    u = User(username="bob", hashed_password=hash_password("password123"))
+    u = User(username="bob", email="bob@example.com", hashed_password=hash_password("password123"))
     session.add(u)
     session.commit()
 
@@ -56,6 +58,7 @@ def test_register_duplicate_username(session: Session):
         "/register",
         data={
             "username": "bob",
+            "email": "bob@example.com",
             "password": "password123",
             "password_confirm": "password123",
             "csrf_token": csrf,
@@ -72,6 +75,7 @@ def test_register_password_too_short(session: Session):
         "/register",
         data={
             "username": "carol",
+            "email": "carol@example.com",
             "password": "short",
             "password_confirm": "short",
             "csrf_token": csrf,
@@ -88,6 +92,7 @@ def test_register_password_mismatch(session: Session):
         "/register",
         data={
             "username": "dave",
+            "email": "dave@example.com",
             "password": "password123",
             "password_confirm": "different123",
             "csrf_token": csrf,
@@ -231,16 +236,16 @@ def test_forgot_password_form_renders(session: Session):
     client, _ = _make_csrf(session)
     response = client.get("/forgot-password")
     assert response.status_code == 200
-    assert b"username" in response.content
+    assert b"email" in response.content
     app.dependency_overrides.clear()
 
 
 def test_forgot_password_unknown_user_still_shows_sent(session: Session):
-    """Must not reveal whether a username exists."""
+    """Must not reveal whether an email address is registered."""
     client, csrf = _make_csrf(session)
     response = client.post(
         "/forgot-password",
-        data={"username": "nobody", "csrf_token": csrf},
+        data={"email": "nobody@example.com", "csrf_token": csrf},
     )
     assert response.status_code == 200
     assert b"sent" not in response.content.lower() or b"reset" in response.content.lower()
@@ -251,7 +256,7 @@ def test_forgot_password_known_user_returns_reset_url(session: Session, user: Us
     client, csrf = _make_csrf(session)
     response = client.post(
         "/forgot-password",
-        data={"username": user.username, "csrf_token": csrf},
+        data={"email": user.email, "csrf_token": csrf},
     )
     assert response.status_code == 200
     assert b"/reset-password?token=" in response.content
