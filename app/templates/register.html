@@ -29,6 +29,13 @@
     </div>
 
     <div class="form-group">
+      <label for="email">Email address <span class="required-marker">*</span></label>
+      <input type="email" id="email" name="email" required
+             value="{{ prefill_email or '' }}"
+             placeholder="e.g. alice@example.com" autocomplete="email" />
+    </div>
+
+    <div class="form-group">
       <label for="password">Password <span class="required-marker">*</span></label>
       <input type="password" id="password" name="password" required
              minlength="8" placeholder="At least 8 characters"

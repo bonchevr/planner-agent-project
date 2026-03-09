@@ -13,6 +13,7 @@ primary_region = 'lhr'
   PORT        = '8000'
   WEB_WORKERS = '2'
   # DATABASE_URL, SECRET_KEY, BASE_URL → fly secrets set (never here)
+  # SMTP config → fly secrets set SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASSWORD=... SMTP_FROM=...
 
 [http_service]
   internal_port        = 8000

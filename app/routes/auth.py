@@ -1,6 +1,8 @@
+import re
+
 from loguru import logger
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -19,7 +21,10 @@ from app.auth import (
 )
 from app.config import settings
 from app.db import get_session
+from app.email import send_password_reset_email
 from app.models.project import User
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -40,6 +45,7 @@ async def register(
     request: Request,
     _csrf: None = Depends(csrf_protect),
     username: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     db: Session = Depends(get_session),
@@ -47,30 +53,36 @@ async def register(
     errors: dict[str, str] = {}
 
     username = username.strip().lower()
+    email = email.strip().lower()
     if len(username) < 3:
         errors["username"] = "Must be at least 3 characters."
+    if not _EMAIL_RE.match(email):
+        errors["email"] = "Enter a valid email address."
     if len(password) < 8:
         errors["password"] = "Must be at least 8 characters."
     if password != password_confirm:
         errors["password_confirm"] = "Passwords do not match."
 
     if not errors:
-        existing = db.exec(select(User).where(User.username == username)).first()
-        if existing:
+        existing_user = db.exec(select(User).where(User.username == username)).first()
+        if existing_user:
             errors["username"] = "Username already taken."
+        existing_email = db.exec(select(User).where(User.email == email)).first()
+        if existing_email:
+            errors["email"] = "An account with that email already exists."
 
     if errors:
         token = make_csrf_token()
         resp = templates.TemplateResponse(
             request,
             "register.html",
-            {"errors": errors, "prefill_username": username, "csrf_token": token},
+            {"errors": errors, "prefill_username": username, "prefill_email": email, "csrf_token": token},
             status_code=422,
         )
         set_csrf_cookie(resp, token)
         return resp
 
-    user = User(username=username, hashed_password=hash_password(password))
+    user = User(username=username, email=email, hashed_password=hash_password(password))
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -151,17 +163,22 @@ async def forgot_password_form(request: Request) -> HTMLResponse:
 @router.post("/forgot-password", response_model=None)
 async def forgot_password_submit(
     request: Request,
+    background_tasks: BackgroundTasks,
     _csrf: None = Depends(csrf_protect),
-    username: str = Form(...),
+    email: str = Form(...),
     db: Session = Depends(get_session),
 ) -> HTMLResponse:
-    user = db.exec(select(User).where(User.username == username.strip().lower())).first()
+    email = email.strip().lower()
+    user = db.exec(select(User).where(User.email == email)).first()
 
     reset_url: str | None = None
     if user:
         reset_token = generate_reset_token(user)
         reset_url = f"{settings.base_url}/reset-password?token={reset_token}"
-        logger.info("[PASSWORD RESET] %s → %s", user.username, reset_url)
+        if settings.app_env == "production":
+            background_tasks.add_task(send_password_reset_email, email, reset_url)
+        else:
+            logger.info("[PASSWORD RESET] {} → {}", user.username, reset_url)
 
     token = make_csrf_token()
     resp = templates.TemplateResponse(
