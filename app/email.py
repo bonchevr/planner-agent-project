@@ -64,11 +64,17 @@ If you did not request this you can safely ignore this email.</p>
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
-            smtp.ehlo()
-            smtp.starttls(context=context)
-            smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.sendmail(msg["From"], [to_email], msg.as_string())
+        # Port 465 → direct SSL (SMTP_SSL); any other port → STARTTLS upgrade
+        if settings.smtp_port == 465:
+            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=context) as smtp:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+                smtp.sendmail(msg["From"], [to_email], msg.as_string())
+        else:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.login(settings.smtp_user, settings.smtp_password)
+                smtp.sendmail(msg["From"], [to_email], msg.as_string())
         logger.info("[PASSWORD RESET EMAIL] sent to {}", to_email)
     except Exception:
         logger.exception("[PASSWORD RESET EMAIL] failed to send to {}", to_email)
