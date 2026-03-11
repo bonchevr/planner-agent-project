@@ -1,5 +1,6 @@
 name: Deploy
 
+# Runs on every push to main: lint + test → Docker Hub publish + Fly.io deploy (parallel)
 on:
   push:
     branches: [main]

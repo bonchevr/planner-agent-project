@@ -84,7 +84,7 @@ _Goal: Production-ready, tested, documented, containerised._
 | 3 | Implement `app/main.py` (app factory + health route) | Solo | 1 h | |
 | 4 | Base HTML template (`base.html`) | Solo | 1 h | Include HTMX CDN, basic nav |
 | 5 | Makefile targets | Solo | 30 min | `make dev`, `make test`, `make lint` |
-| 6 | GitHub Actions workflow (`ci.yml`) | Solo | 1 h | ruff lint + pytest |
+| 6 | GitHub Actions workflow (`fly-deploy.yml`) | Solo | 1 h | ruff lint + pytest + deploy |
 
 ### Phase 1 tasks
 
@@ -187,7 +187,6 @@ planner-agent/
 │   └── versions/               # 001–004 migration scripts
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml              # PR-only: lint + test with coverage
 │       └── fly-deploy.yml      # Push to main: test → Docker Hub + Fly.io
 ├── entrypoint.sh
 ├── .gitignore

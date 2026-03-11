@@ -222,11 +222,10 @@ pg_dump "$DATABASE_URL" -f backup-$(date +%Y%m%d-%H%M).sql
 
 ## 10. GitHub Actions CI/CD Pipeline
 
-The repository uses two workflow files:
+The repository uses a single workflow file:
 
 | File | Trigger | Jobs |
 |------|---------|------|
-| `ci.yml` | Pull request → `main` | Lint (ruff) + Test (pytest with coverage) |
 | `fly-deploy.yml` | Push → `main` | 1. Lint & Test → 2. Push image to Docker Hub (parallel) + 3. Deploy to Fly.io (parallel) |
 
 ### Required GitHub Actions secrets

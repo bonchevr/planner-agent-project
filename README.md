@@ -1,6 +1,5 @@
 # Planner Agent
 
-[![CI](https://github.com/bonchevr/planner_agent_project/actions/workflows/ci.yml/badge.svg)](https://github.com/bonchevr/planner_agent_project/actions/workflows/ci.yml)
 [![Deploy](https://github.com/bonchevr/planner_agent_project/actions/workflows/fly-deploy.yml/badge.svg)](https://github.com/bonchevr/planner_agent_project/actions/workflows/fly-deploy.yml)
 
 A lightweight Python web app that guides you through a structured project interview and generates a ready-to-use **Project Gameplan** as a Markdown document — in under 5 minutes.
