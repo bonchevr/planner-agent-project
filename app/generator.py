@@ -32,6 +32,21 @@ _md_renderer = mistune.create_markdown(plugins=["table"])
 
 def render_md(text: str) -> str:
     """Render Markdown to sanitised HTML (safe to inject with |safe in templates)."""
+    # Normalise legacy &nbsp; separators stored in older DB records so they
+    # don't get double-escaped by bleach and display as literal text.
+    text = text.replace("&nbsp;", "\u00a0")
+    # Rewrite old single-line blockquote metadata into per-field lines.
+    # Matches: > **Key:** Value · **Key:** Value ...
+    import re as _re
+    def _expand_meta(m: _re.Match) -> str:
+        parts = _re.split(r"\s*[·\|]\s*", m.group(1))
+        return "\n".join(f"> {p.strip()}" for p in parts if p.strip())
+    text = _re.sub(
+        r"^> (.+(?:\*\*(?:Generated|Status|Team|Timeline):\*\*).+)$",
+        _expand_meta,
+        text,
+        flags=_re.MULTILINE,
+    )
     raw_html = _md_renderer(text)
     return bleach.clean(raw_html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
 
@@ -392,7 +407,10 @@ class GameplanGenerator:
 
         return f"""# {project.project_name}
 
-> **Generated:** {today} · **Status:** Planning · **Team:** {team_note} · **Timeline:** {timeline_str}
+> **Generated:** {today}
+> **Status:** Planning
+> **Team:** {team_note}
+> **Timeline:** {timeline_str}
 
 ---
 
