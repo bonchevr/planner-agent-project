@@ -59,6 +59,37 @@
         if (fill) fill.style.width = e.target.value + '%';
       }
     });
+
+    // Interactive checklist checkboxes + auto-sync counter
+    (function () {
+      const body = document.querySelector('.gameplan-body');
+      if (!body) return;
+
+      const boxes = Array.from(body.querySelectorAll('input[type="checkbox"]'));
+      if (!boxes.length) return;
+
+      // Remove the disabled attribute so boxes are clickable
+      boxes.forEach(cb => { cb.disabled = false; });
+
+      function updateChecklist() {
+        const checked = boxes.filter(b => b.checked).length;
+        const total   = boxes.length;
+        const pct     = Math.round(checked / total * 100);
+
+        const pctEl   = document.getElementById('checklist_pct_display');
+        const lblEl   = document.getElementById('checklist_count_label');
+        const valEl   = document.getElementById('sync_progress_val');
+        const fillEl  = document.getElementById('progress_fill');
+
+        if (pctEl)  pctEl.textContent  = pct + '%';
+        if (lblEl)  lblEl.textContent  = checked + ' of ' + total + ' tasks checked';
+        if (valEl)  valEl.value        = pct;
+        if (fillEl) fillEl.style.width = pct + '%';
+      }
+
+      boxes.forEach(cb => cb.addEventListener('change', updateChecklist));
+      updateChecklist();
+    })();
   </script>
 </body>
 </html>

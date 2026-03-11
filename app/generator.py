@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from datetime import date
 from typing import Optional
 
@@ -18,11 +19,13 @@ _ALLOWED_TAGS: frozenset[str] = frozenset({
     "p", "ul", "ol", "li", "blockquote", "pre", "code",
     "strong", "em", "a", "hr", "br",
     "table", "thead", "tbody", "tr", "th", "td",
+    "input",  # task-list checkboxes
 })
 _ALLOWED_ATTRS: dict[str, list[str]] = {
     "a": ["href", "title"],
     "td": ["align"],
     "th": ["align"],
+    "input": ["type", "checked", "disabled"],  # checkbox only
 }
 _md_renderer = mistune.create_markdown(plugins=["table"])
 
@@ -118,15 +121,108 @@ _PLATFORM_KEYWORDS: dict[str, list[str]] = {
 class StackRecommender:
     @staticmethod
     def recommend(project: ProjectInput) -> dict[str, str]:
-        platform_lower = project.target_platform.lower()
+        # Scan all free-text fields to get richer context
+        all_text = " ".join([
+            project.target_platform,
+            project.problem_statement,
+            project.core_features,
+            project.constraints,
+            project.preferred_language,
+        ]).lower()
+
         matched_key = "web"
         for key, keywords in _PLATFORM_KEYWORDS.items():
-            if any(kw in platform_lower for kw in keywords):
+            if any(kw in all_text for kw in keywords):
                 matched_key = key
                 break
         stack = dict(_STACK_MAP[matched_key])
+
+        # Language + framework override from preferred_language field
         if project.preferred_language.strip():
-            stack["Language"] = project.preferred_language.strip()
+            lang = project.preferred_language.strip()
+            lang_lower = lang.lower()
+            stack["Language"] = lang
+            if "django" in lang_lower or "django" in all_text:
+                stack["Framework"] = "Django + Django REST Framework"
+            elif "flask" in lang_lower or "flask" in all_text:
+                stack["Framework"] = "Flask + Flask-RESTX"
+            elif "go" in lang_lower or lang_lower == "go":
+                stack["Language"] = "Go"
+                stack["Framework"] = "Chi / Gin"
+            elif "rust" in lang_lower:
+                stack["Language"] = "Rust"
+                stack["Framework"] = "Axum"
+            elif any(k in lang_lower for k in ["node", "javascript", "typescript"]):
+                stack["Language"] = "TypeScript / Node.js"
+                if matched_key in ("web", "api"):
+                    stack["Framework"] = "Express.js / Fastify"
+
+        # UI layer overrides for web apps
+        if matched_key == "web" and "UI Layer" in stack:
+            if "next.js" in all_text or "nextjs" in all_text:
+                stack["UI Layer"] = "Next.js (React SSR)"
+            elif "react" in all_text:
+                stack["UI Layer"] = "React + Vite"
+            elif "vue" in all_text:
+                stack["UI Layer"] = "Vue 3 + Vite"
+            elif "svelte" in all_text:
+                stack["UI Layer"] = "SvelteKit"
+            elif "angular" in all_text:
+                stack["UI Layer"] = "Angular"
+
+        # Database overrides
+        if "Database" in stack:
+            if "supabase" in all_text:
+                stack["Database"] = "Supabase (PostgreSQL)"
+            elif "firebase" in all_text or "firestore" in all_text:
+                stack["Database"] = "Firestore (Firebase)"
+            elif "mongodb" in all_text or "mongo" in all_text:
+                stack["Database"] = "MongoDB + Motor (async)"
+            elif "mysql" in all_text or "mariadb" in all_text:
+                stack["Database"] = "MySQL + SQLAlchemy"
+            elif "postgres" in all_text or "postgresql" in all_text:
+                stack["Database"] = "PostgreSQL + SQLAlchemy"
+
+        # Hosting overrides
+        if "Hosting" in stack:
+            if "aws" in all_text or "amazon web" in all_text:
+                stack["Hosting"] = "AWS (ECS / Lambda)"
+            elif "gcp" in all_text or "google cloud" in all_text:
+                stack["Hosting"] = "Google Cloud Run"
+            elif "azure" in all_text:
+                stack["Hosting"] = "Azure Container Apps"
+            elif "digitalocean" in all_text or "digital ocean" in all_text:
+                stack["Hosting"] = "DigitalOcean App Platform"
+            elif "vercel" in all_text:
+                stack["Hosting"] = "Vercel"
+            elif "netlify" in all_text:
+                stack["Hosting"] = "Netlify"
+            elif "heroku" in all_text:
+                stack["Hosting"] = "Heroku"
+
+        # CI/CD overrides (only if user explicitly mentioned a different tool)
+        if "gitlab" in all_text:
+            stack["CI/CD"] = "GitLab CI/CD"
+        elif "jenkins" in all_text:
+            stack["CI/CD"] = "Jenkins"
+        elif "circleci" in all_text:
+            stack["CI/CD"] = "CircleCI"
+        elif "bitbucket" in all_text:
+            stack["CI/CD"] = "Bitbucket Pipelines"
+        elif "azure devops" in all_text:
+            stack["CI/CD"] = "Azure DevOps Pipelines"
+
+        # Auth overrides
+        if "Auth" in stack:
+            if "auth0" in all_text:
+                stack["Auth"] = "Auth0"
+            elif "supabase" in all_text:
+                stack["Auth"] = "Supabase Auth"
+            elif "firebase" in all_text:
+                stack["Auth"] = "Firebase Auth"
+            elif "keycloak" in all_text:
+                stack["Auth"] = "Keycloak"
+
         return stack
 
 
@@ -203,38 +299,66 @@ class GameplanGenerator:
             f"{stack_rows}"
         )
 
-        # Architecture notes based on platform type
+        # Architecture notes — context-aware from platform + detected features
         platform_lower = project.target_platform.lower()
+        all_text_lower = " ".join([
+            project.target_platform,
+            project.problem_statement,
+            project.core_features,
+            project.constraints,
+        ]).lower()
+
         if any(k in platform_lower for k in ["web", "saas", "fullstack"]):
-            arch_note = (
-                "- Server-rendered HTML with progressive enhancement (HTMX/Alpine) for minimal JS bundle\n"
-                "- REST endpoints for any rich client interactions\n"
-                "- Relational DB with migrations from day one (Alembic / Flyway)"
-            )
+            arch_notes = [
+                "Server-rendered HTML with progressive enhancement (HTMX/Alpine) keeps JS bundles lean",
+                "REST endpoints for any rich client interactions — define OpenAPI contracts early",
+                "Relational DB with migrations from day one (Alembic / Flyway) — never alter schema by hand in production",
+                "Row-level security or explicit `WHERE user_id = ?` scoping on every authenticated query",
+            ]
         elif any(k in platform_lower for k in ["api", "backend", "service"]):
-            arch_note = (
-                "- Async request handling from the start (FastAPI / Go / Node)\n"
-                "- OpenAPI spec auto-generated — keep it accurate and versioned\n"
-                "- Rate limiting and auth middleware in the router layer"
-            )
+            arch_notes = [
+                "Async request handling from the start (FastAPI / Go / Node) — avoid retrofitting later",
+                "OpenAPI spec auto-generated and versioned (`/v1/`) — treat it as a contract; breaking changes require a new version",
+                "Rate limiting and authentication middleware applied at the router layer, not inside handlers",
+                "Idempotency keys on any state-mutating endpoint; make retries safe by design",
+            ]
         elif any(k in platform_lower for k in ["mobile", "ios", "android"]):
-            arch_note = (
-                "- Offline-first data model with sync on reconnect\n"
-                "- Optimistic UI updates to mask network latency\n"
-                "- Deep-link routing wired up from day one"
-            )
+            arch_notes = [
+                "Offline-first data model — assume no network; sync on reconnect via a conflict-free strategy",
+                "Optimistic UI updates to mask network latency; roll back gracefully on server errors",
+                "Deep-link routing and universal links wired up from day one (not retrofitted)",
+                "Background sync and push notifications decoupled from UI state; handled in a dedicated service layer",
+            ]
         elif any(k in platform_lower for k in ["data", "ml", "ai"]):
-            arch_note = (
-                "- Reproducible pipelines via DVC or Makefile targets\n"
-                "- Separate training, evaluation, and serving concerns\n"
-                "- Version datasets alongside model artefacts"
-            )
+            arch_notes = [
+                "Reproducible pipelines via DVC or Makefile targets — anyone can re-run training from scratch",
+                "Strict separation of training, evaluation, and serving concerns to prevent data leakage",
+                "Version datasets and model artefacts alongside code (DVC / MLflow)",
+                "Feature store or shared preprocessing pipeline prevents training/serving skew from day one",
+            ]
         else:
-            arch_note = (
-                "- Keep the module boundary between core logic and I/O thin\n"
-                "- Prefer configuration over hard-coded values from day one\n"
-                "- Write the README before writing the first line of code"
-            )
+            arch_notes = [
+                "Keep the boundary between core business logic and I/O (DB, network, filesystem) thin and explicit",
+                "Prefer explicit configuration over hard-coded values — externalise all environment-specific settings",
+                "Write the README before writing the first line of code; clarify the dev setup and deploy story",
+                "Centralise logging and structured error reporting from the first commit",
+            ]
+
+        # Append project-specific notes based on detected features
+        if any(k in all_text_lower for k in ["auth", "login", "user", "register", "jwt", "oauth", "session", "signup"]):
+            arch_notes.append("Auth flows isolated in their own module — never inline credential validation in business logic")
+        if any(k in all_text_lower for k in ["payment", "billing", "stripe", "subscription", "checkout", "invoice"]):
+            arch_notes.append("Payment processing sandboxed behind an interface — swap providers (Stripe → Paddle etc.) without touching business code; never store raw card data")
+        if any(k in all_text_lower for k in ["real-time", "realtime", "websocket", "socket.io", "live update", "push notification"]):
+            arch_notes.append("Real-time layer (WebSockets / SSE) separated from the REST API; fan-out handled via pub/sub or a message broker (Redis Streams / NATS)")
+        if any(k in all_text_lower for k in ["upload", "file", "image", "media", "storage", "s3", "blob", "attachment"]):
+            arch_notes.append("File storage abstracted behind a `StorageBackend` interface — local ↔ S3-compatible swap without touching callers")
+        if any(k in all_text_lower for k in ["cache", "redis", "performance", "speed", "fast", "latency"]):
+            arch_notes.append("Cache layer introduced at the service boundary (not inside repositories) to keep cache-invalidation logic co-located with the data it protects")
+        if any(k in all_text_lower for k in ["search", "elasticsearch", "algolia", "full-text", "fulltext"]):
+            arch_notes.append("Search index built as a read-projection of the primary DB — kept eventually consistent via background jobs, not synchronous writes")
+
+        arch_note = "\n".join(f"- {note}" for note in arch_notes)
 
         # Risk table
         risks = _build_risks(project)
@@ -268,7 +392,7 @@ class GameplanGenerator:
 
         return f"""# {project.project_name}
 
-> **Generated:** {today} &nbsp;|&nbsp; **Status:** Planning &nbsp;|&nbsp; **Team:** {team_note} &nbsp;|&nbsp; **Timeline:** {timeline_str}
+> **Generated:** {today} · **Status:** Planning · **Team:** {team_note} · **Timeline:** {timeline_str}
 
 ---
 
@@ -365,3 +489,16 @@ class GameplanGenerator:
 
 - _(add deferred features here)_
 """
+
+
+# ---------------------------------------------------------------------------
+# Progress helper — count checked tasks in markdown
+# ---------------------------------------------------------------------------
+
+def calculate_progress_from_md(md: str) -> int:
+    """Return 0–100 percentage based on checked vs total task checkboxes."""
+    total = len(re.findall(r"- \[[ xX]\]", md))
+    if total == 0:
+        return 0
+    checked = len(re.findall(r"- \[[xX]\]", md))
+    return round(checked / total * 100)

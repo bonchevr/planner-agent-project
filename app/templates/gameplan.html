@@ -73,18 +73,36 @@
     {# Progress #}
     <div class="sidebar-card">
       <div class="sidebar-card-title">&#128200; Progress</div>
+
+      {# Manual slider #}
       <form action="/gameplan/{{ record.id }}/progress" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <div class="progress-slider-row">
           <div class="slider-header">
-            <span class="slider-label">Completion</span>
+            <span class="slider-label">Manual override</span>
             <span class="slider-value" id="progress_display">{{ record.progress }}%</span>
           </div>
           <input type="range" id="progress_slider" name="progress" min="0" max="100" step="5"
                  value="{{ record.progress }}" />
-          <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.65rem; width:100%">Update progress</button>
+          <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.65rem; width:100%">Save progress</button>
         </div>
       </form>
+
+      {# Auto-sync from checklist #}
+      <div style="margin-top:1rem; padding-top:0.9rem; border-top:1px solid var(--border);">
+        <div class="slider-header" style="margin-bottom:0.6rem;">
+          <span class="slider-label">From checklist</span>
+          <span class="slider-value" id="checklist_pct_display">—</span>
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-subtle); margin-bottom:0.65rem;" id="checklist_count_label">
+          Check tasks in the plan above, then sync.
+        </p>
+        <form action="/gameplan/{{ record.id }}/progress" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="progress" id="sync_progress_val" value="0" />
+          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%">&#10003; Sync from checklist</button>
+        </form>
+      </div>
     </div>
 
     {# Notes #}
