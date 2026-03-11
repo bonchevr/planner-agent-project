@@ -45,6 +45,11 @@ class ProjectInput(BaseModel):
         return slug.strip("-")
 
 
+# ── Project status enum values ────────────────────────────────────────────
+
+PROJECT_STATUSES = ["planning", "in_progress", "on_hold", "completed", "cancelled"]
+
+
 # ── GameplanRecord ────────────────────────────────────────────────────────
 
 class GameplanRecord(SQLModel, table=True):
@@ -62,6 +67,12 @@ class GameplanRecord(SQLModel, table=True):
     stack_json: str  # JSON-encoded dict[str, str]
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
+    # Status & progress tracking
+    status: str = Field(default="planning", index=True)
+    progress: int = Field(default=0)  # 0–100
+    tags: str = Field(default="")     # comma-separated free-text tags
+    notes: str = Field(default="")    # personal notes / journal
+
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
     owner: Optional[User] = Relationship(back_populates="gameplans")
 
@@ -70,4 +81,15 @@ class GameplanRecord(SQLModel, table=True):
 
     def stack(self) -> dict[str, str]:
         return json.loads(self.stack_json)
+
+    def tags_list(self) -> list[str]:
+        return [t.strip() for t in self.tags.split(",") if t.strip()]
+
+    @property
+    def status_label(self) -> str:
+        return self.status.replace("_", " ").title()
+
+    @property
+    def status_class(self) -> str:
+        return f"status-{self.status}"
 

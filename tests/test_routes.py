@@ -31,7 +31,7 @@ def test_metrics_returns_prometheus_text(client: TestClient):
 def test_index_returns_200(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"Planner Agent" in response.content
+    assert b"Planner" in response.content
 
 
 # ── protected routes (require auth) ───────────────────────────────────────────

@@ -1,9 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Create account — Planner Agent{% endblock %}
+{% block title %}Create account — Planner{% endblock %}
 
 {% block content %}
+<div class="auth-layout">
 <div class="auth-card">
-  <h2>Create account</h2>
+  <div class="auth-card-logo">
+    <div class="logo-icon">&#9670;</div>
+    Planner
+  </div>
+  <h2>Create your account</h2>
   <p class="subtitle">Already have an account? <a href="/login">Sign in</a></p>
 
   {% if errors %}
@@ -50,8 +55,9 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Create account &rarr;</button>
+      <button type="submit" class="btn btn-primary" style="width:100%">Create account &rarr;</button>
     </div>
   </form>
+</div>
 </div>
 {% endblock %}

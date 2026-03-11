@@ -1,11 +1,41 @@
 {% extends "base.html" %}
-{% block title %}My Gameplans — Planner Agent{% endblock %}
+{% block title %}My Plans — Planner{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h2>My Gameplans</h2>
+  <div>
+    <h2>My Plans</h2>
+    <p class="page-subtitle">{{ records | length }} plan{{ 's' if records | length != 1 else '' }} found</p>
+  </div>
   <a href="/interview" class="btn btn-primary">&#43; New Plan</a>
 </div>
+
+{# Search & filter bar #}
+<form method="get" action="/gameplans" class="search-bar">
+  <div class="search-input-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input
+      class="search-input"
+      type="search"
+      name="q"
+      value="{{ q }}"
+      placeholder="Search by name, description, or tag…"
+      autocomplete="off"
+    />
+  </div>
+  <select class="filter-select" name="status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for s in all_statuses %}
+    <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>
+      {{ s.replace('_', ' ').title() }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-secondary">Filter</button>
+  {% if q or status_filter %}
+  <a href="/gameplans" class="btn btn-ghost">Clear</a>
+  {% endif %}
+</form>
 
 {% if records %}
 <div class="plans-list">
@@ -14,32 +44,52 @@
     <div class="plan-card-body">
       <h3><a href="/gameplan/{{ record.id }}">{{ record.project_name }}</a></h3>
       <div class="plan-meta">
+        <span class="status-badge status-{{ record.status }}">{{ record.status_label }}</span>
         <span class="meta-tag">{{ record.target_platform }}</span>
         <span class="meta-tag">{{ record.team_size }}</span>
-        {% if record.timeline %}<span class="meta-tag">{{ record.timeline }}</span>{% endif %}
+        {% if record.timeline %}<span class="meta-tag">&#128336; {{ record.timeline }}</span>{% endif %}
         <span class="meta-tag">{{ record.created_at.strftime('%d %b %Y') }}</span>
+        {% for tag in record.tags_list() %}
+        <span class="meta-tag accent"># {{ tag }}</span>
+        {% endfor %}
       </div>
-      <p class="plan-summary">
-        {{ record.problem_statement[:140] ~ '…' if record.problem_statement | length > 140 else record.problem_statement }}
+      {% if record.progress > 0 %}
+      <div class="progress-bar-wrap" style="max-width: 360px;">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style="width: {{ record.progress }}%;"></div>
+        </div>
+        <span class="progress-pct">{{ record.progress }}%</span>
+      </div>
+      {% endif %}
+      <p class="plan-summary" style="margin-top: 0.5rem;">
+        {{ record.problem_statement[:160] ~ '…' if record.problem_statement | length > 160 else record.problem_statement }}
       </p>
     </div>
     <div class="plan-card-actions">
-      <a href="/gameplan/{{ record.id }}" class="btn btn-secondary">View</a>
-      <a href="/gameplan/{{ record.id }}/edit" class="btn btn-secondary">Edit</a>
-      <a href="/gameplan/{{ record.id }}/download" class="btn btn-secondary">&#11015;</a>
+      <a href="/gameplan/{{ record.id }}" class="btn btn-secondary btn-sm">View</a>
+      <a href="/gameplan/{{ record.id }}/edit" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="/gameplan/{{ record.id }}/download" class="btn btn-ghost btn-sm" title="Download .md">&#8681;</a>
       <form action="/gameplan/{{ record.id }}/delete" method="post" style="display:inline"
             onsubmit="return confirm('Delete &quot;{{ record.project_name }}&quot;? This cannot be undone.')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
-        <button type="submit" class="btn btn-danger">&#128465;</button>
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete">&#128465;</button>
       </form>
     </div>
   </div>
   {% endfor %}
 </div>
+
 {% else %}
 <div class="empty-state">
-  <p>No gameplans saved yet.</p>
-  <a href="/interview" class="btn btn-primary">Create your first gameplan &rarr;</a>
+  <div class="empty-state-icon">&#128203;</div>
+  {% if q or status_filter %}
+  <h3>No matching plans</h3>
+  <p>Try adjusting your search or filter — or <a href="/gameplans" style="color:var(--accent)">clear filters</a>.</p>
+  {% else %}
+  <h3>No plans yet</h3>
+  <p>Create your first project gameplan to get started.</p>
+  <a href="/interview" class="btn btn-primary">Create your first plan &rarr;</a>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}

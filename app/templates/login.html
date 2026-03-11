@@ -1,14 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Sign in — Planner Agent{% endblock %}
+{% block title %}Sign in — Planner{% endblock %}
 
 {% block content %}
+<div class="auth-layout">
 <div class="auth-card">
-  <h2>Sign in</h2>
-  <p class="subtitle">No account yet? <a href="/register">Create one</a></p>
+  <div class="auth-card-logo">
+    <div class="logo-icon">&#9670;</div>
+    Planner
+  </div>
+  <h2>Welcome back</h2>
+  <p class="subtitle">No account yet? <a href="/register">Create one free</a></p>
 
   {% if reset_success %}
   <div class="form-success">
-    Your password has been updated. You can now sign in.
+    &#10003; Your password has been updated. You can now sign in.
   </div>
   {% endif %}
 
@@ -18,27 +23,30 @@
   </div>
   {% endif %}
 
-  <form action="/login" method="post" class="auth-form">
+  <form action="/login" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
 
     <div class="form-group">
-      <label for="username">Username <span class="required-marker">*</span></label>
+      <label for="username">Username</label>
       <input type="text" id="username" name="username" required
              value="{{ prefill_username or '' }}"
              placeholder="your username" autocomplete="username" />
     </div>
 
     <div class="form-group">
-      <label for="password">Password <span class="required-marker">*</span></label>
+      <label for="password">Password</label>
       <input type="password" id="password" name="password" required
              placeholder="your password" autocomplete="current-password" />
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Sign in &rarr;</button>
+      <button type="submit" class="btn btn-primary" style="width:100%">Sign in &rarr;</button>
     </div>
   </form>
 
-  <p class="forgot-link"><a href="/forgot-password">Forgot your password?</a></p>
+  <p class="forgot-link" style="text-align:center; margin-top:1.25rem">
+    <a href="/forgot-password">Forgot your password?</a>
+  </p>
+</div>
 </div>
 {% endblock %}

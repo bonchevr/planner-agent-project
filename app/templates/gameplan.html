@@ -1,73 +1,134 @@
 {% extends "base.html" %}
-{% block title %}{{ record.project_name }} — Gameplan{% endblock %}
+{% block title %}{{ record.project_name }} — Planner{% endblock %}
 
 {% block content %}
-<div class="gameplan-header">
-  <h2>&#9989; {{ record.project_name }}</h2>
+<div class="gameplan-title-row">
+  <div>
+    <div class="gameplan-meta">
+      <span class="status-badge status-{{ record.status }}">{{ record.status_label }}</span>
+      <span class="meta-tag">{{ record.target_platform }}</span>
+      <span class="meta-tag">{{ record.team_size }}</span>
+      {% if record.timeline %}<span class="meta-tag">&#128336; {{ record.timeline }}</span>{% endif %}
+      <span class="meta-tag">{{ record.created_at.strftime('%d %b %Y') }}</span>
+      {% for tag in record.tags_list() %}
+      <span class="meta-tag accent"># {{ tag }}</span>
+      {% endfor %}
+    </div>
+    <h2 class="gameplan-title">{{ record.project_name }}</h2>
+    {% if record.progress > 0 %}
+    <div class="progress-bar-wrap" style="max-width: 420px; margin-top: 0.75rem;">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress_fill" style="width: {{ record.progress }}%;"></div>
+      </div>
+      <span class="progress-pct">{{ record.progress }}%</span>
+    </div>
+    {% endif %}
+  </div>
   <div class="gameplan-actions">
-    <a href="/gameplan/{{ record.id }}/edit" class="btn btn-secondary">&#9998; Edit</a>
-    <a href="/gameplans" class="btn btn-secondary">&#8592; All plans</a>
-    <a href="/interview" class="btn btn-secondary">&#43; New plan</a>
+    <a href="/gameplan/{{ record.id }}/edit" class="btn btn-secondary btn-sm">&#9998; Edit</a>
+    <a href="/gameplan/{{ record.id }}/download" class="btn btn-secondary btn-sm" title="Download .md">&#8681; Export</a>
+    <button class="btn btn-secondary btn-sm copy-btn"
+            data-copy="{{ record.gameplan_md | replace('\"', '&quot;') }}">&#128203; Copy</button>
+    <a href="/gameplans" class="btn btn-ghost btn-sm">&#8592; All plans</a>
     <form action="/gameplan/{{ record.id }}/delete" method="post" style="display:inline"
           onsubmit="return confirm('Delete this gameplan? This cannot be undone.')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
-      <button type="submit" class="btn btn-danger">&#128465; Delete</button>
+      <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)">&#128465;</button>
     </form>
   </div>
 </div>
 
-<div class="gameplan-meta">
-  <span class="meta-tag">{{ record.target_platform }}</span>
-  <span class="meta-tag">{{ record.team_size }}</span>
-  {% if record.timeline %}<span class="meta-tag">{{ record.timeline }}</span>{% endif %}
-  <span class="meta-tag meta-date">Saved {{ record.created_at.strftime('%d %b %Y') }}</span>
-</div>
+<hr class="section-divider" />
 
-<div class="gameplan-download">
-  <a href="/gameplan/{{ record.id }}/download" class="btn btn-primary">&#11015; Download .md</a>
-  <button class="btn btn-secondary" id="copy-btn" onclick="copyGameplan()">&#128203; Copy to clipboard</button>
-</div>
+<div class="gameplan-layout">
 
-<div class="share-section">
-  {% if share_url %}
-  <div class="share-box">
-    <span class="share-label">&#128279; Public link (anyone with this URL can view)</span>
-    <div class="share-url-row">
-      <a href="{{ share_url }}" class="share-url" target="_blank" rel="noopener noreferrer">{{ share_url }}</a>
-      <button class="btn btn-secondary btn-sm" onclick="copyShareUrl()">&#128203; Copy</button>
+  {# ── Main content ── #}
+  <div class="gameplan-main">
+    <div class="gameplan-body">
+      {{ record.gameplan_md | render_md | safe }}
     </div>
-    <form action="/gameplan/{{ record.id }}/revoke" method="post" style="margin-top:0.6rem">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-      <button type="submit" class="btn btn-danger btn-sm">&#128274; Revoke link</button>
-    </form>
   </div>
-  {% else %}
-  <form action="/gameplan/{{ record.id }}/share" method="post" style="display:inline">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <button type="submit" class="btn btn-secondary">&#128279; Create share link</button>
-  </form>
-  {% endif %}
-</div>
 
-<div class="gameplan-body">
-  {{ record.gameplan_md | render_md | safe }}
-</div>
+  {# ── Sidebar ── #}
+  <aside class="gameplan-sidebar">
 
-<script>
-function copyGameplan() {
-  const raw = {{ record.gameplan_md | tojson }};
-  navigator.clipboard.writeText(raw).then(() => {
-    const btn = document.getElementById('copy-btn');
-    btn.textContent = '\u2705 Copied!';
-    setTimeout(() => { btn.textContent = '\ud83d\udccb Copy to clipboard'; }, 2000);
-  });
-}
-function copyShareUrl() {
-  const url = {{ share_url | tojson }};
-  navigator.clipboard.writeText(url).then(() => {
-    event.target.textContent = '\u2705 Copied!';
-    setTimeout(() => { event.target.textContent = '\ud83d\udccb Copy'; }, 2000);
-  });
-}
-</script>
+    {# Status #}
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">&#9670; Status</div>
+      <form action="/gameplan/{{ record.id }}/status" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="status-select-row">
+          <select name="status">
+            <option value="planning"    {{ 'selected' if record.status == 'planning'    }}>Planning</option>
+            <option value="in_progress" {{ 'selected' if record.status == 'in_progress' }}>In Progress</option>
+            <option value="on_hold"     {{ 'selected' if record.status == 'on_hold'     }}>On Hold</option>
+            <option value="completed"   {{ 'selected' if record.status == 'completed'   }}>Completed</option>
+            <option value="cancelled"   {{ 'selected' if record.status == 'cancelled'   }}>Cancelled</option>
+          </select>
+          <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+        </div>
+      </form>
+    </div>
+
+    {# Progress #}
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">&#128200; Progress</div>
+      <form action="/gameplan/{{ record.id }}/progress" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="progress-slider-row">
+          <div class="slider-header">
+            <span class="slider-label">Completion</span>
+            <span class="slider-value" id="progress_display">{{ record.progress }}%</span>
+          </div>
+          <input type="range" id="progress_slider" name="progress" min="0" max="100" step="5"
+                 value="{{ record.progress }}" />
+          <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.65rem; width:100%">Update progress</button>
+        </div>
+      </form>
+    </div>
+
+    {# Notes #}
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">&#128221; Notes</div>
+      <form action="/gameplan/{{ record.id }}/notes" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <textarea class="notes-textarea" name="notes"
+                  placeholder="Personal notes, decisions, blockers…">{{ record.notes }}</textarea>
+        <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:0.6rem; width:100%">Save notes</button>
+      </form>
+    </div>
+
+    {# Share #}
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">&#128279; Share</div>
+      {% if share_url %}
+      <div class="share-box">
+        <a href="{{ share_url }}" class="share-url" target="_blank" rel="noopener noreferrer">{{ share_url }}</a>
+        <div class="share-actions">
+          <button class="btn btn-secondary btn-sm copy-btn" data-copy="{{ share_url }}">Copy link</button>
+          <form action="/gameplan/{{ record.id }}/revoke" method="post" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)">Revoke</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:0.75rem;">
+        Create a public read-only link to share this plan.
+      </p>
+      <form action="/gameplan/{{ record.id }}/share" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="btn btn-secondary btn-sm" style="width:100%">&#128279; Create share link</button>
+      </form>
+      {% endif %}
+    </div>
+
+    {# Quick nav #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <a href="/interview" class="btn btn-primary btn-sm" style="text-align:center;">&#43; New plan</a>
+      <a href="/gameplans" class="btn btn-ghost btn-sm" style="text-align:center;">&#8592; All plans</a>
+    </div>
+
+  </aside>
+</div>
 {% endblock %}

@@ -1,7 +1,8 @@
 import json
 import uuid
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -11,7 +12,7 @@ from app.auth import csrf_protect, make_csrf_token, require_user, set_csrf_cooki
 from app.config import settings
 from app.db import get_session
 from app.generator import GameplanGenerator, StackRecommender, render_md
-from app.models.project import GameplanRecord, ProjectInput, User
+from app.models.project import PROJECT_STATUSES, GameplanRecord, ProjectInput, User
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -143,14 +144,38 @@ async def list_gameplans(
     request: Request,
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
+    q: Optional[str] = Query(default=None),
+    status_filter: Optional[str] = Query(default=None, alias="status"),
 ) -> HTMLResponse:
-    records = session.exec(
-        select(GameplanRecord)
-        .where(GameplanRecord.user_id == user.id)
-        .order_by(GameplanRecord.created_at.desc())
-    ).all()
+    query = select(GameplanRecord).where(GameplanRecord.user_id == user.id)
+    if status_filter and status_filter in PROJECT_STATUSES:
+        query = query.where(GameplanRecord.status == status_filter)
+    query = query.order_by(GameplanRecord.created_at.desc())
+    records = session.exec(query).all()
+
+    # Client-side text search (case-insensitive substring across name + problem)
+    if q:
+        q_lower = q.lower()
+        records = [
+            r for r in records
+            if q_lower in r.project_name.lower()
+            or q_lower in r.problem_statement.lower()
+            or q_lower in r.tags.lower()
+        ]
+
     token = make_csrf_token()
-    resp = templates.TemplateResponse(request, "gameplans.html", {"records": records, "user": user, "csrf_token": token})
+    resp = templates.TemplateResponse(
+        request,
+        "gameplans.html",
+        {
+            "records": records,
+            "user": user,
+            "csrf_token": token,
+            "q": q or "",
+            "status_filter": status_filter or "",
+            "all_statuses": PROJECT_STATUSES,
+        },
+    )
     set_csrf_cookie(resp, token)
     return resp
 
@@ -241,6 +266,7 @@ async def generate(
     team_size: str = Form("solo"),
     timeline: str = Form(""),
     constraints: str = Form(""),
+    tags: str = Form(""),
 ):
     project_input, errors = _try_build_project_input(
         project_name, problem_statement, core_features, target_platform,
@@ -264,6 +290,9 @@ async def generate(
     stack = StackRecommender.recommend(project_input)
     gameplan_md = GameplanGenerator.generate(project_input, stack)
 
+    # Normalise tags
+    clean_tags = ", ".join(t.strip() for t in tags.split(",") if t.strip())
+
     record = GameplanRecord(
         slug=project_input.slug,
         project_name=project_input.project_name,
@@ -276,6 +305,7 @@ async def generate(
         constraints=project_input.constraints,
         gameplan_md=gameplan_md,
         stack_json=json.dumps(stack),
+        tags=clean_tags,
         user_id=user.id,
     )
     session.add(record)
@@ -300,6 +330,7 @@ async def edit_gameplan_save(
     team_size: str = Form("solo"),
     timeline: str = Form(""),
     constraints: str = Form(""),
+    tags: str = Form(""),
 ):
     record = session.get(GameplanRecord, record_id)
     if not record:
@@ -329,6 +360,7 @@ async def edit_gameplan_save(
 
     stack = StackRecommender.recommend(project_input)
     gameplan_md = GameplanGenerator.generate(project_input, stack)
+    clean_tags = ", ".join(t.strip() for t in tags.split(",") if t.strip())
 
     record.slug = project_input.slug
     record.project_name = project_input.project_name
@@ -341,6 +373,7 @@ async def edit_gameplan_save(
     record.constraints = project_input.constraints
     record.gameplan_md = gameplan_md
     record.stack_json = json.dumps(stack)
+    record.tags = clean_tags
 
     session.add(record)
     session.commit()
@@ -429,4 +462,62 @@ async def download_post(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ── Status & progress updates ───────────────────────────────────────────
+
+@router.post("/gameplan/{record_id}/status")
+async def update_status(
+    record_id: int,
+    _csrf: None = Depends(csrf_protect),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+    status: str = Form(...),
+):
+    record = session.get(GameplanRecord, record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Gameplan not found")
+    _assert_owner(record, user)
+    if status not in PROJECT_STATUSES:
+        raise HTTPException(status_code=422, detail="Invalid status value.")
+    record.status = status
+    session.add(record)
+    session.commit()
+    return RedirectResponse(url=f"/gameplan/{record_id}", status_code=303)
+
+
+@router.post("/gameplan/{record_id}/progress")
+async def update_progress(
+    record_id: int,
+    _csrf: None = Depends(csrf_protect),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+    progress: int = Form(...),
+):
+    record = session.get(GameplanRecord, record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Gameplan not found")
+    _assert_owner(record, user)
+    record.progress = max(0, min(100, progress))
+    session.add(record)
+    session.commit()
+    return RedirectResponse(url=f"/gameplan/{record_id}", status_code=303)
+
+
+@router.post("/gameplan/{record_id}/notes")
+async def update_notes(
+    record_id: int,
+    _csrf: None = Depends(csrf_protect),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+    notes: str = Form(""),
+):
+    record = session.get(GameplanRecord, record_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Gameplan not found")
+    _assert_owner(record, user)
+    record.notes = notes.strip()
+    session.add(record)
+    session.commit()
+    return RedirectResponse(url=f"/gameplan/{record_id}", status_code=303)
 

@@ -1,25 +1,73 @@
 {% extends "base.html" %}
-{% block title %}Planner Agent — Home{% endblock %}
+{% block title %}Planner — Plan smarter, ship faster{% endblock %}
 
 {% block content %}
 <section class="hero">
-  <h1>Turn your idea into a gameplan.</h1>
-  <p>Answer a few questions about your project and get a structured, Markdown gameplan in under 5 minutes.</p>
-  <a href="/interview" class="btn btn-primary">Start planning &rarr;</a>
+  <div class="hero-badge">&#9670; AI-assisted project planning</div>
+  <h1>Plan smarter,<br/>ship faster.</h1>
+  <p>Answer a few questions about your project and get a structured, dynamic gameplan — with stack recommendations, risk analysis, and milestone planning — in seconds.</p>
+  <div class="hero-cta">
+    <a href="/register" class="btn btn-primary btn-lg">Get started free &rarr;</a>
+    <a href="/login" class="btn btn-ghost btn-lg">Sign in</a>
+  </div>
 </section>
 
 <section class="features">
   <div class="feature-card">
-    <h3>&#128221; Guided Interview</h3>
-    <p>A focused set of questions that captures everything you need to plan effectively.</p>
+    <div class="feature-icon">&#128221;</div>
+    <h3>Guided Interview</h3>
+    <p>A focused set of questions captures everything needed — platform, team size, constraints, and features.</p>
   </div>
   <div class="feature-card">
-    <h3>&#128200; Stack Recommendation</h3>
-    <p>Get an opinionated, minimal tech-stack suggestion based on your platform and preferences.</p>
+    <div class="feature-icon">&#128200;</div>
+    <h3>Dynamic Stack Picks</h3>
+    <p>Get opinionated tech-stack recommendations across 8 platforms — web, API, mobile, CLI, data/ML, games, and more.</p>
   </div>
   <div class="feature-card">
-    <h3>&#128196; Markdown Output</h3>
-    <p>Download a clean, editable Markdown gameplan you can commit straight to your repo.</p>
+    <div class="feature-icon">&#9888;</div>
+    <h3>Risk Register</h3>
+    <p>Automatically surfaces the top risks based on your project's scope, team, and constraints.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">&#128203;</div>
+    <h3>Progress Tracking</h3>
+    <p>Track status and completion for each project. Update in one click — no separate tool needed.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">&#128279;</div>
+    <h3>Shareable Links</h3>
+    <p>Share a read-only public link to your gameplan with teammates or stakeholders — revoke it anytime.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">&#8681;</div>
+    <h3>Markdown Export</h3>
+    <p>Download a clean, editable <code>.md</code> file you can commit straight to your repository.</p>
+  </div>
+</section>
+
+<section class="how-it-works">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h4>Describe your project</h4>
+      <p>Fill in the guided form — name, problem, features, platform, team.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h4>Get your gameplan</h4>
+      <p>We generate a dynamic Markdown plan with milestones, stack picks, and risks.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <h4>Track &amp; iterate</h4>
+      <p>Update status, progress, and notes as you work. Edit and regenerate anytime.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <h4>Ship it</h4>
+      <p>Export your plan to Markdown and commit it to your repo as living documentation.</p>
+    </div>
   </div>
 </section>
 {% endblock %}

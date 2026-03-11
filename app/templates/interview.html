@@ -1,13 +1,19 @@
 {% extends "base.html" %}
-{% block title %}{% if record_id %}Edit Gameplan{% else %}New Project{% endif %} — Planner Agent{% endblock %}
+{% block title %}{% if record_id %}Edit Plan{% else %}New Plan{% endif %} — Planner{% endblock %}
 
 {% block content %}
-<h2>{% if record_id %}Edit Gameplan{% else %}New Project Gameplan{% endif %}</h2>
-<p class="subtitle">Fill in the details below. Required fields are marked <span class="required-marker">*</span>.</p>
+<div class="interview-header">
+  <h2>{% if record_id %}Edit your plan{% else %}Plan a new project{% endif %}</h2>
+  <p class="subtitle">
+    {% if record_id %}Update the details below and regenerate your gameplan.
+    {% else %}Tell us about your project and we'll generate a tailored, dynamic gameplan in seconds.{% endif %}
+    Required fields are marked <span style="color:var(--red)">*</span>.
+  </p>
+</div>
 
 {% if errors %}
 <div class="form-errors">
-  <strong>Please fix the following:</strong>
+  <strong>Please fix the following errors:</strong>
   <ul>
     {% for field, msg in errors.items() %}
     <li><strong>{{ field.replace('_', ' ').title() }}</strong>: {{ msg }}</li>
@@ -16,74 +22,113 @@
 </div>
 {% endif %}
 
-<form action="{{ form_action if form_action else '/generate' }}" method="post" class="interview-form">
-
+<form action="{{ form_action if form_action else '/generate' }}" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
 
-  <div class="form-group">
-    <label for="project_name">Project name <span class="required-marker">*</span></label>
-    <input type="text" id="project_name" name="project_name" required
-           value="{{ prefill.project_name if prefill else '' }}"
-           placeholder="e.g. Planner Agent" maxlength="120" />
-  </div>
+  <div class="interview-form-card">
 
-  <div class="form-group">
-    <label for="problem_statement">What problem does it solve, and for whom? <span class="required-marker">*</span></label>
-    <textarea id="problem_statement" name="problem_statement" required
-              rows="3" placeholder="e.g. Solo developers need a quick way to...">{{ prefill.problem_statement if prefill else '' }}</textarea>
-  </div>
+    {# ── Section 1: Project identity ── #}
+    <div class="form-section-title">Project identity</div>
+    <div class="interview-grid">
+      <div class="form-group form-group-full">
+        <label for="project_name">Project name <span class="required-marker">*</span></label>
+        <input type="text" id="project_name" name="project_name" required
+               value="{{ prefill.project_name if prefill else '' }}"
+               placeholder="e.g. Planner, Invoice Ninja, My CLI tool" maxlength="120" />
+      </div>
 
-  <div class="form-group">
-    <label for="core_features">Core features for v1 (one per line) <span class="required-marker">*</span></label>
-    <textarea id="core_features" name="core_features" required
-              rows="5" placeholder="User login&#10;Dashboard&#10;Export as PDF">{{ prefill.core_features if prefill else '' }}</textarea>
-  </div>
+      <div class="form-group form-group-full">
+        <label for="problem_statement">What problem does it solve, and for whom? <span class="required-marker">*</span></label>
+        <textarea id="problem_statement" name="problem_statement" required rows="3"
+                  placeholder="e.g. Solo developers need a quick way to turn project ideas into structured plans…">{{ prefill.problem_statement if prefill else '' }}</textarea>
+        <p class="field-hint">Be specific. A clear problem statement shapes everything else in the plan.</p>
+      </div>
 
-  <div class="form-group">
-    <label for="target_platform">Target platform <span class="required-marker">*</span></label>
-    <select id="target_platform" name="target_platform" required>
-      <option value="">— select —</option>
-      <option value="Web app (frontend + backend)" {{ 'selected' if prefill and prefill.target_platform == 'Web app (frontend + backend)' else '' }}>Web app (frontend + backend)</option>
-      <option value="REST / GraphQL API" {{ 'selected' if prefill and prefill.target_platform == 'REST / GraphQL API' else '' }}>REST / GraphQL API</option>
-      <option value="CLI tool" {{ 'selected' if prefill and prefill.target_platform == 'CLI tool' else '' }}>CLI tool</option>
-      <option value="Mobile app" {{ 'selected' if prefill and prefill.target_platform == 'Mobile app' else '' }}>Mobile app</option>
-      <option value="Desktop app" {{ 'selected' if prefill and prefill.target_platform == 'Desktop app' else '' }}>Desktop app</option>
-    </select>
-  </div>
+      <div class="form-group form-group-full">
+        <label for="core_features">Core features for v1 <span class="required-marker">*</span> <span class="optional-marker">(one per line)</span></label>
+        <textarea id="core_features" name="core_features" required rows="5"
+                  placeholder="User authentication&#10;Project dashboard&#10;Export to PDF&#10;Email notifications">{{ prefill.core_features if prefill else '' }}</textarea>
+        <p class="field-hint">Keep this to the essentials. 3–6 features is ideal. Deferred ideas go in the v2 backlog.</p>
+      </div>
+    </div>
 
-  <div class="form-group">
-    <label for="preferred_language">Preferred language / framework <span class="optional-marker">(optional)</span></label>
-    <input type="text" id="preferred_language" name="preferred_language"
-           value="{{ prefill.preferred_language if prefill else '' }}"
-           placeholder="e.g. Python, Go, TypeScript — leave blank to get a recommendation" maxlength="80" />
-  </div>
+    {# ── Section 2: Technical context ── #}
+    <div class="form-section-title" style="margin-top:1.25rem;">Technical context</div>
+    <div class="interview-grid">
+      <div class="form-group">
+        <label for="target_platform">Target platform <span class="required-marker">*</span></label>
+        <select id="target_platform" name="target_platform" required>
+          <option value="">— select —</option>
+          <option value="Web app (frontend + backend)"   {{ 'selected' if prefill and prefill.target_platform == 'Web app (frontend + backend)' }}>Web app (frontend + backend)</option>
+          <option value="REST / GraphQL API"             {{ 'selected' if prefill and prefill.target_platform == 'REST / GraphQL API' }}>REST / GraphQL API</option>
+          <option value="CLI tool"                       {{ 'selected' if prefill and prefill.target_platform == 'CLI tool' }}>CLI tool</option>
+          <option value="Mobile app"                     {{ 'selected' if prefill and prefill.target_platform == 'Mobile app' }}>Mobile app</option>
+          <option value="Desktop app"                    {{ 'selected' if prefill and prefill.target_platform == 'Desktop app' }}>Desktop app</option>
+          <option value="Data / ML pipeline"             {{ 'selected' if prefill and prefill.target_platform == 'Data / ML pipeline' }}>Data / ML pipeline</option>
+          <option value="Game"                           {{ 'selected' if prefill and prefill.target_platform == 'Game' }}>Game</option>
+          <option value="Embedded / IoT firmware"        {{ 'selected' if prefill and prefill.target_platform == 'Embedded / IoT firmware' }}>Embedded / IoT firmware</option>
+        </select>
+      </div>
 
-  <div class="form-group">
-    <label for="team_size">Team size</label>
-    <select id="team_size" name="team_size">
-      <option value="solo" {{ 'selected' if not prefill or prefill.team_size == 'solo' else '' }}>Solo</option>
-      <option value="2–3 people" {{ 'selected' if prefill and prefill.team_size == '2–3 people' else '' }}>2–3 people</option>
-      <option value="4–8 people" {{ 'selected' if prefill and prefill.team_size == '4–8 people' else '' }}>4–8 people</option>
-      <option value="8+ people" {{ 'selected' if prefill and prefill.team_size == '8+ people' else '' }}>8+ people</option>
-    </select>
-  </div>
+      <div class="form-group">
+        <label for="preferred_language">Preferred language / framework <span class="optional-marker">(optional)</span></label>
+        <input type="text" id="preferred_language" name="preferred_language"
+               value="{{ prefill.preferred_language if prefill else '' }}"
+               placeholder="e.g. Python, Go, TypeScript" maxlength="80" />
+        <p class="field-hint">Leave blank to get a recommendation.</p>
+      </div>
 
-  <div class="form-group">
-    <label for="timeline">Target timeline <span class="optional-marker">(optional)</span></label>
-    <input type="text" id="timeline" name="timeline"
-           value="{{ prefill.timeline if prefill else '' }}"
-           placeholder="e.g. 6 weeks, end of Q2, no deadline" maxlength="80" />
-  </div>
+      <div class="form-group">
+        <label for="team_size">Team size</label>
+        <select id="team_size" name="team_size">
+          <option value="solo"       {{ 'selected' if not prefill or prefill.team_size == 'solo' }}>Solo</option>
+          <option value="2–3 people" {{ 'selected' if prefill and prefill.team_size == '2–3 people' }}>2–3 people</option>
+          <option value="4–8 people" {{ 'selected' if prefill and prefill.team_size == '4–8 people' }}>4–8 people</option>
+          <option value="8+ people"  {{ 'selected' if prefill and prefill.team_size == '8+ people' }}>8+ people</option>
+        </select>
+      </div>
 
-  <div class="form-group">
-    <label for="constraints">Constraints <span class="optional-marker">(optional)</span></label>
-    <textarea id="constraints" name="constraints"
-              rows="2" placeholder="e.g. must use existing Postgres DB, no cloud spend, GDPR compliance">{{ prefill.constraints if prefill else '' }}</textarea>
-  </div>
+      <div class="form-group">
+        <label for="timeline">Target timeline <span class="optional-marker">(optional)</span></label>
+        <input type="text" id="timeline" name="timeline"
+               value="{{ prefill.timeline if prefill else '' }}"
+               placeholder="e.g. 6 weeks, end of Q3, asap" maxlength="80" />
+      </div>
 
-  <div class="form-actions">
-    <button type="submit" class="btn btn-primary">Generate gameplan &rarr;</button>
-  </div>
+      <div class="form-group form-group-full">
+        <label for="constraints">Constraints <span class="optional-marker">(optional)</span></label>
+        <textarea id="constraints" name="constraints" rows="2"
+                  placeholder="e.g. must use existing Postgres DB, no cloud spend, GDPR compliance">{{ prefill.constraints if prefill else '' }}</textarea>
+        <p class="field-hint">Constraints are planning gold — the more specific, the better your risk register.</p>
+      </div>
+    </div>
 
+    {# ── Section 3: Organisation ── #}
+    <div class="form-section-title" style="margin-top:1.25rem;">Organisation</div>
+    <div class="interview-grid">
+      <div class="form-group form-group-full">
+        <label for="tags">Tags <span class="optional-marker">(optional, comma-separated)</span></label>
+        <div class="tag-input-wrap">
+          <span class="tag-prefix">#</span>
+          <input type="text" id="tags" name="tags" class="tag-input"
+                 value="{{ prefill.tags if prefill else '' }}"
+                 placeholder="saas, side-project, work, open-source" maxlength="200" />
+        </div>
+        <p class="field-hint">Tags help you find and filter plans later.</p>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary btn-lg">
+        {% if record_id %}Regenerate gameplan &rarr;{% else %}Generate gameplan &rarr;{% endif %}
+      </button>
+      {% if record_id %}
+      <a href="/gameplan/{{ record_id }}" class="btn btn-ghost">Cancel</a>
+      {% else %}
+      <a href="/gameplans" class="btn btn-ghost">Cancel</a>
+      {% endif %}
+    </div>
+
+  </div>
 </form>
 {% endblock %}

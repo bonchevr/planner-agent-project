@@ -3,17 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Planner Agent{% endblock %}</title>
+  <title>{% block title %}Planner{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css" />
   <script src="https://unpkg.com/htmx.org@1.9.12" crossorigin="anonymous"></script>
 </head>
 <body>
   <header class="site-header">
-    <a href="/" class="site-logo">&#9678; Planner Agent</a>
+    <a href="/" class="site-logo">
+      <div class="logo-icon">&#9670;</div>
+      Planner
+    </a>
     <nav>
       {% if user is defined and user %}
         <a href="/gameplans">My Plans</a>
-        <a href="/interview">New Plan</a>
+        <a href="/interview">+ New Plan</a>
         <span class="nav-username">{{ user.username }}</span>
         <form action="/logout" method="post" style="display:inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />
@@ -21,7 +24,7 @@
         </form>
       {% else %}
         <a href="/login">Sign in</a>
-        <a href="/register" class="btn btn-primary btn-nav">Get started</a>
+        <a href="/register" class="btn btn-primary btn-sm btn-nav">Get started</a>
       {% endif %}
     </nav>
   </header>
@@ -31,7 +34,31 @@
   </main>
 
   <footer class="site-footer">
-    <small>Planner Agent v0.3.0</small>
+    <small>Planner &mdash; plan smarter, ship faster &nbsp;&middot;&nbsp; <a href="/health">Status</a></small>
   </footer>
+
+  <script>
+    // Copy-to-clipboard helper
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const text = btn.dataset.copy;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+      });
+    });
+    // Live progress slider label
+    document.addEventListener('input', function(e) {
+      if (e.target.id === 'progress_slider') {
+        const lbl = document.getElementById('progress_display');
+        if (lbl) lbl.textContent = e.target.value + '%';
+        const fill = document.getElementById('progress_fill');
+        if (fill) fill.style.width = e.target.value + '%';
+      }
+    });
+  </script>
 </body>
 </html>
