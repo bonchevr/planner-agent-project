@@ -2,7 +2,7 @@ import re
 
 from loguru import logger
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -163,7 +163,6 @@ async def forgot_password_form(request: Request) -> HTMLResponse:
 @router.post("/forgot-password", response_model=None)
 async def forgot_password_submit(
     request: Request,
-    background_tasks: BackgroundTasks,
     _csrf: None = Depends(csrf_protect),
     email: str = Form(...),
     db: Session = Depends(get_session),
@@ -176,7 +175,10 @@ async def forgot_password_submit(
         reset_token = generate_reset_token(user)
         reset_url = f"{settings.base_url}/reset-password?token={reset_token}"
         if settings.app_env == "production":
-            background_tasks.add_task(send_password_reset_email, email, reset_url)
+            # Send inline (not as BackgroundTask) so it completes before the
+            # response is returned — prevents Fly's auto-stop from killing the
+            # task before the SMTP connection finishes.
+            send_password_reset_email(email, reset_url)
         else:
             logger.info("[PASSWORD RESET] {} → {}", user.username, reset_url)
 
