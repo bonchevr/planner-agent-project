@@ -1,15 +1,14 @@
 name: CI
 
+# Runs on every pull request — fast feedback before merging.
+# Push-to-main is handled by fly-deploy.yml (lint + test + publish + deploy).
 on:
-  push:
-    branches: ["main"]
   pull_request:
-    branches: ["main"]
+    branches: [main]
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
