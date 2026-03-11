@@ -1,6 +1,6 @@
 # Planner Agent — Production Deployment Runbook (Fly.io)
 
-> Last updated: June 2025
+> Last updated: March 2026
 > Platform: [Fly.io](https://fly.io) — Docker-native PaaS
 > Database: [Neon](https://neon.tech) — managed serverless PostgreSQL 16 (external, never auto-stops)
 
@@ -10,13 +10,13 @@
 
 | What | Command |
 |------|---------|
-| Deploy latest commit | `fly deploy` |
-| Tail live logs | `fly logs` |
-| SSH into app VM | `fly ssh console` |
+| Deploy latest commit | `flyctl deploy` |
+| Tail live logs | `flyctl logs` |
+| SSH into app VM | `flyctl ssh console` |
 | Connect to Neon (psql) | Connect via your Neon dashboard or `psql "$DATABASE_URL"` |
-| List secrets | `fly secrets list` |
-| Scale machines | `fly scale count 2` |
-| View releases | `fly releases` |
+| List secrets | `flyctl secrets list` |
+| Scale machines | `flyctl scale count 2` |
+| View releases | `flyctl releases` |
 
 ---
 
@@ -49,15 +49,22 @@
 | `PORT` | `8000` | Internal port Uvicorn listens on |
 | `WEB_WORKERS` | `2` | Suitable for 1 GB VM; increase if upgrading and load-testing |
 
-### 3.2 Secrets (inject with `fly secrets set` — **never** in `fly.toml`)
+### 3.2 Secrets (inject with `flyctl secrets set` — **never** in `fly.toml`)
 
 | Secret | How to set |
-|--------|-----------|
-| `DATABASE_URL` | `fly secrets set DATABASE_URL="<your-neon-connection-string>"` |
-| `SECRET_KEY` | `fly secrets set SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"` |
-| `BASE_URL` | `fly secrets set BASE_URL="https://<app-name>.fly.dev"` |
+|--------|----------|
+| `DATABASE_URL` | `flyctl secrets set DATABASE_URL="<your-neon-connection-string>"` |
+| `SECRET_KEY` | `flyctl secrets set SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"` |
+| `BASE_URL` | `flyctl secrets set BASE_URL="https://planner-agent.fly.dev"` |
+| `SMTP_HOST` | `flyctl secrets set SMTP_HOST="smtp.resend.com"` |
+| `SMTP_PORT` | `flyctl secrets set SMTP_PORT="465"` |
+| `SMTP_USER` | `flyctl secrets set SMTP_USER="resend"` |
+| `SMTP_PASSWORD` | `flyctl secrets set SMTP_PASSWORD="<your-resend-api-key>"` |
+| `SMTP_FROM` | `flyctl secrets set SMTP_FROM="Planner Agent <onboarding@resend.dev>"` |
 
-> ⚠️ **Never** commit `SECRET_KEY` or `DATABASE_URL` to source control. Rotate `SECRET_KEY` immediately if exposed — all active sessions will be invalidated.
+> ⚠️ **Never** commit `SECRET_KEY`, `DATABASE_URL`, or `SMTP_PASSWORD` to source control. Rotate `SECRET_KEY` immediately if exposed — all active sessions will be invalidated.
+
+> 📧 **Email notes:** The free Resend account uses `onboarding@resend.dev` as sender, which can only deliver to the account owner’s verified email. To send to any address, verify a custom domain at [resend.com/domains](https://resend.com/domains) and update `SMTP_FROM` accordingly.
 
 ---
 
@@ -75,7 +82,7 @@ fly auth login
 Open `fly.toml` at the repo root and change two values:
 
 ```toml
-app = "your-unique-app-name"   # must be globally unique on Fly
+app = "planner-agent"   # must be globally unique on Fly
 primary_region = "lhr"         # lhr · iad · fra · sea · sin (see §14)
 ```
 
@@ -98,11 +105,15 @@ fly launch --no-deploy
 ### Step 5 — Set secrets
 
 ```bash
-fly secrets set \
+flyctl secrets set \
   DATABASE_URL="<your-neon-connection-string>" \
   SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')" \
-  BASE_URL="https://your-unique-app-name.fly.dev" \
-  --app your-unique-app-name
+  BASE_URL="https://planner-agent.fly.dev" \
+  SMTP_HOST="smtp.resend.com" \
+  SMTP_PORT="465" \
+  SMTP_USER="resend" \
+  SMTP_PASSWORD="<your-resend-api-key>" \
+  SMTP_FROM="Planner Agent <onboarding@resend.dev>"
 ```
 
 The app normalises `postgres://` to `postgresql://` automatically (handled in `app/config.py`) so either URL format works.
@@ -126,10 +137,10 @@ Fly will:
 
 ```bash
 # Health check — should return {"status": "ok", "version": "0.1.0"}
-curl -s https://your-unique-app-name.fly.dev/health | python3 -m json.tool
+curl -s https://planner-agent.fly.dev/health | python3 -m json.tool
 
 # Confirm TLS and security headers
-curl -sI https://your-unique-app-name.fly.dev/ | grep -Ei "x-content-type|x-frame|referrer|strict-transport"
+curl -sI https://planner-agent.fly.dev/ | grep -Ei "x-content-type|x-frame|referrer|strict-transport"
 ```
 
 Expected response headers:
@@ -156,10 +167,10 @@ fly deploy             # deploy after CI passes (or use auto-deploy — see §10
 
 ```bash
 # Tail live logs (JSON format in production)
-fly logs --app your-unique-app-name
+fly logs --app planner-agent
 
 # Prometheus metrics (requires auth — not public)
-curl https://your-unique-app-name.fly.dev/metrics
+curl https://planner-agent.fly.dev/metrics
 ```
 
 Metrics exposed: `http_requests_total` (counter) and `http_request_duration_seconds` (histogram).
@@ -170,15 +181,15 @@ Metrics exposed: `http_requests_total` (counter) and `http_request_duration_seco
 
 ```bash
 # List current secrets (names only — values are never shown)
-fly secrets list --app your-unique-app-name
+fly secrets list --app planner-agent
 
 # Rotate the secret key (invalidates all existing sessions)
 fly secrets set \
   SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')" \
-  --app your-unique-app-name
+  --app planner-agent
 
 # Remove a secret
-fly secrets unset SOME_SECRET --app your-unique-app-name
+fly secrets unset SOME_SECRET --app planner-agent
 ```
 
 ---
@@ -190,10 +201,10 @@ fly secrets unset SOME_SECRET --app your-unique-app-name
 psql "$DATABASE_URL"
 
 # Or extract the URL from Fly secrets and use it locally
-fly ssh console --app your-unique-app-name -C "printenv DATABASE_URL"
+fly ssh console --app planner-agent -C "printenv DATABASE_URL"
 
 # Run a one-off Alembic migration manually (normally automatic on deploy)
-fly ssh console --app your-unique-app-name -C "alembic upgrade head"
+fly ssh console --app planner-agent -C "alembic upgrade head"
 ```
 
 ### 9.1 Backups
@@ -209,28 +220,25 @@ pg_dump "$DATABASE_URL" -f backup-$(date +%Y%m%d-%H%M).sql
 
 ---
 
-## 10. GitHub Actions Auto-Deploy
+## 10. GitHub Actions CI/CD Pipeline
 
-Add a `deploy` job to `.github/workflows/ci.yml` after the `lint-and-test` job:
+The repository uses two workflow files:
 
-```yaml
-  deploy:
-    name: Deploy to Fly.io
-    needs: [lint-and-test]   # only deploy if tests + lint pass
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: fly deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-```
+| File | Trigger | Jobs |
+|------|---------|------|
+| `ci.yml` | Pull request → `main` | Lint (ruff) + Test (pytest with coverage) |
+| `fly-deploy.yml` | Push → `main` | 1. Lint & Test → 2. Push image to Docker Hub (parallel) + 3. Deploy to Fly.io (parallel) |
 
-**Setup:**
-1. Generate a deploy token: `fly tokens create deploy -x 999999h`
-2. Add it as a repository secret named `FLY_API_TOKEN` in  
-   GitHub **Settings → Secrets and variables → Actions → New repository secret**
+### Required GitHub Actions secrets
+
+| Secret | Purpose | How to obtain |
+|--------|---------|---------------|
+| `FLY_API_TOKEN` | Fly.io deploy | `flyctl tokens create deploy -x 999999h` |
+| `DOCKERHUB_TOKEN` | Push image to Docker Hub | Docker Hub → Account Settings → Personal access tokens |
+
+Add both under **GitHub repo → Settings → Secrets and variables → Actions → New repository secret**.
+
+The Docker Hub image is published as `bonchevr/planner-agent:latest` and `bonchevr/planner-agent:sha-<commit>` on every successful push to `main`.
 
 ---
 
@@ -238,13 +246,13 @@ Add a `deploy` job to `.github/workflows/ci.yml` after the `lint-and-test` job:
 
 ```bash
 # Scale to 2 app machines (zero-downtime rolling deploy)
-fly scale count 2 --app your-unique-app-name
+fly scale count 2 --app planner-agent
 
 # Upgrade VM memory (e.g., to 2 GB for WEB_WORKERS=4)
-fly scale vm shared-cpu-1x --memory 2048 --app your-unique-app-name
+fly scale vm shared-cpu-1x --memory 2048 --app planner-agent
 
 # Check current machine status
-fly status --app your-unique-app-name
+fly status --app planner-agent
 ```
 
 > The free allowance covers **3 shared-cpu-1x machines per organisation**.
@@ -256,10 +264,10 @@ fly status --app your-unique-app-name
 
 ```bash
 # List releases with image tags
-fly releases --app your-unique-app-name
+fly releases --app planner-agent
 
-# Roll back to a specific image (e.g., v5)
-fly deploy --image registry.fly.io/your-unique-app-name:deployment-v5
+# Roll back to a specific image (e.g., sha-abc1234 from Docker Hub)
+fly deploy --image bonchevr/planner-agent:sha-abc1234
 ```
 
 For a code-level rollback:
@@ -329,11 +337,11 @@ Change `primary_region` in `fly.toml` and run `fly deploy` to migrate.
 |---------|-------------|-----|
 | `fly deploy` fails health check | App crashed on start (missing secret, migration error) | Run `fly logs` immediately after to catch the error |
 | `DATABASE_URL` scheme error | `postgres://` not normalised | Handled in `app/config.py`; check `fly logs` if it persists |
-| 500 errors | Unhandled exception | `fly logs --app your-unique-app-name` for the stack trace |
+| 500 errors | Unhandled exception | `fly logs --app planner-agent` for the stack trace |
 | Sessions not persisting | `SECRET_KEY` rotated; old cookies invalid | Expected after rotation; users must re-login |
 | `alembic upgrade head` fails | DB not ready or migration conflict | `fly postgres connect` and inspect Alembic version table |
-| Share links return 404 | `BASE_URL` secret wrong | `fly secrets set BASE_URL=https://<app>.fly.dev` |
-| Forgot-password link broken | `BASE_URL` secret missing | Same as above |
+| Share links return 404 | `BASE_URL` secret wrong | `flyctl secrets set BASE_URL=https://planner-agent.fly.dev` |
+| Forgot-password link broken | `BASE_URL` secret missing / wrong | `flyctl secrets set BASE_URL=https://planner-agent.fly.dev` |
 
 ---
 

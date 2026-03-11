@@ -1,8 +1,8 @@
 # Planner Agent — Project Gameplan
 
 > Generated: 5 March 2026
-> Last updated: 6 March 2026
-> Status: v0.4.0 — Phase 7 (Production Deployment) Complete ✅ — Live at <https://planner-agent.fly.dev/>
+> Last updated: 11 March 2026
+> Status: v0.5.0 — Phase 8 (Email & UX Polish) Complete ✅ — Live at <https://planner-agent.fly.dev/>
 
 ## 1. Overview
 
@@ -66,7 +66,7 @@ _Goal: Users can save, list, and reload their gameplans._
 _Goal: Production-ready, tested, documented, containerised._
 - [x] Security review (OWASP checklist — see §5)
 - [x] Dockerfile + `docker-compose.yml`
-- [x] Deployment runbook (`plans/deploy/planner-agent-production.md`)
+- [x] Deployment runbook (`docs/planner-agent-production.md`)
 - [x] Performance baseline (< 200 ms p99 for gameplan generation)
 - [x] User-facing `README.md` with screenshots
 - [x] `CHANGELOG.md` v1.0.0 entry
@@ -129,7 +129,7 @@ _Goal: Production-ready, tested, documented, containerised._
 - [x] `pytest` suite passes with ≥ 80% coverage (current: 90%, 44/44 tests)
 - [x] No P0 or P1 findings from `code-review.agent.md`
 - [x] Runs cleanly inside Docker container
-- [x] Deployment runbook exists at `plans/deploy/planner-agent-production.md`
+- [x] Deployment runbook exists at `docs/planner-agent-production.md`
 - [x] README includes setup instructions and a screenshot placeholder
 
 **v1.0.0 is shipped. ✅**
@@ -144,23 +144,29 @@ planner-agent/
 │   ├── __init__.py
 │   ├── main.py               # FastAPI app factory
 │   ├── config.py             # Settings (env vars)
+│   ├── db.py                 # SQLAlchemy engine + session factory
+│   ├── email.py              # SMTP password-reset email (SSL/STARTTLS)
 │   ├── generator.py          # GameplanGenerator + StackRecommender + render_md
+│   ├── logging_config.py     # loguru structured logging
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── project.py        # Pydantic + SQLModel models
+│   │   └── project.py           # Pydantic + SQLModel models
 │   ├── routes/
 │   │   ├── __init__.py
-│   │   ├── planner.py        # /interview, /generate, /gameplan/{id}
-│   │   ├── auth.py           # /register, /login, /logout
-│   │   └── health.py         # GET /health
+│   │   ├── planner.py           # /interview, /generate, /gameplan/{id}, /share/{slug}
+│   │   ├── auth.py              # /register, /login, /logout, /forgot-password, /reset-password
+│   │   └── health.py            # GET /health, GET /metrics
 │   ├── templates/
 │   │   ├── base.html
 │   │   ├── index.html
 │   │   ├── interview.html
 │   │   ├── gameplan.html
 │   │   ├── gameplans.html
+│   │   ├── shared_gameplan.html
 │   │   ├── login.html
-│   │   └── register.html
+│   │   ├── register.html
+│   │   ├── forgot_password.html
+│   │   └── reset_password.html
 │   └── static/
 │       └── style.css
 ├── tests/
@@ -169,16 +175,20 @@ planner-agent/
 │   ├── test_auth.py
 │   ├── test_generator.py
 │   └── test_routes.py
-├── agents/
-│   ├── code-review.agent.md  # VS Code Copilot: code-review workflow
-│   └── devops.agent.md       # VS Code Copilot: infra / ops tasks
-├── plans/
-│   ├── planner-agent.md      # This file — project roadmap
-│   └── deploy/
-│       └── planner-agent-production.md  # Deployment runbook
+├── docs/
+│   ├── planner-agent.md          # This file — project roadmap
+│   ├── planner-agent-production.md  # Deployment runbook
+│   ├── Home_page.png
+│   ├── New_plan.png
+│   ├── Plan_overview.png
+│   └── All_plans.png
+├── alembic/
+│   ├── env.py
+│   └── versions/               # 001–004 migration scripts
 ├── .github/
 │   └── workflows/
-│       └── ci.yml
+│       ├── ci.yml              # PR-only: lint + test with coverage
+│       └── fly-deploy.yml      # Push to main: test → Docker Hub + Fly.io
 ├── entrypoint.sh
 ├── .gitignore
 ├── Dockerfile
@@ -241,5 +251,18 @@ _Goal: App live on a public URL with CI/CD, PostgreSQL, and resilient startup._
 | 2 | Migrate from SQLite to PostgreSQL (production) | P1 | ✅ Neon managed serverless Postgres; Alembic migrations on startup |
 | 3 | Connection pool resilience | P1 | ✅ `pool_pre_ping=True` + `pool_recycle=300` in `db.py` |
 | 4 | Wait-for-DB loop in entrypoint | P1 | ✅ 30-retry loop before Alembic; safe for cold-start |
-| 5 | GitHub Actions auto-deploy | P1 | ✅ `.github/workflows/fly-deploy.yml`; deploys only if CI passes |
-| 6 | 1 GB VM, 2 workers, auto-stop off | P2 | ✅ `fly.toml` — 1 GB shared-cpu-1x; health checks every 30 s |
+| 5 | GitHub Actions auto-deploy | P1 | ✅ `.github/workflows/fly-deploy.yml`: test → Docker Hub publish + Fly deploy (parallel) |
+| 6 | Docker Hub image publish | P2 | ✅ `bonchevr/planner-agent:latest` + `sha-<commit>` tags |
+| 7 | 1 GB VM, 2 workers, auto-stop enabled | P2 | ✅ `fly.toml` — 1 GB shared-cpu-1x; health checks every 30 s |
+
+### Phase 8 — Email & UX Polish  _(complete)_ ✅
+_Goal: Password reset via email, improved metadata display, context-aware generator, interactive progress._
+
+| # | Feature | Priority | Status |
+|---|---------|----------|--------|
+| 1 | Password reset email via Resend SMTP (port 465, SSL) | P1 | ✅ `app/email.py`; sent synchronously in `auth.py` |
+| 2 | Context-aware `StackRecommender` (scans all input fields) | P2 | ✅ Detects React, AWS, MongoDB, GitLab, Auth0, etc. |
+| 3 | Enriched architecture notes (per-platform + per-feature) | P2 | ✅ 4+ bullets per platform; auth/payments/search addons |
+| 4 | Interactive checklist progress sidebar | P2 | ✅ JS syncs checked tasks → progress counter in real-time |
+| 5 | Metadata multi-line blockquote format | P3 | ✅ Generator + `render_md()` backcompat regex for old records |
+| 6 | Nav & username contrast fix | P3 | ✅ `var(--text)` throughout; username badge styling |

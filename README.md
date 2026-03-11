@@ -5,6 +5,14 @@
 
 A lightweight Python web app that guides you through a structured project interview and generates a ready-to-use **Project Gameplan** as a Markdown document — in under 5 minutes.
 
+Key features:
+- **Structured interview** — guided form captures goals, constraints, tech preferences, and timeline
+- **AI-free generation** — rule-based `GameplanGenerator` + context-aware `StackRecommender` produce a tailored tech stack, architecture notes, and milestone list
+- **Interactive progress tracking** — sidebar checklist syncs with embedded Markdown task items
+- **Shareable read-only links** — generate a public UUID slug per gameplan without exposing other plans
+- **Password reset via email** — signed 1-hour tokens delivered through Resend SMTP
+- **Full auth** — per-user accounts with bcrypt passwords, CSRF protection, and signed session cookies
+
 **Live demo:** <https://planner-agent.fly.dev/>
 
 ---
@@ -128,6 +136,11 @@ Copy `.env.example` to `.env` before running. All variables have safe defaults f
 | `SECRET_KEY` | `change-me-before-deploying` | **Change this before any public deployment** |
 | `BASE_URL` | `http://localhost:8000` | Public base URL (used for password-reset links) |
 | `WEB_WORKERS` | `2` | Number of Uvicorn workers (production uses 2) |
+| `SMTP_HOST` | _(unset)_ | SMTP server hostname (e.g. `smtp.resend.com`) |
+| `SMTP_PORT` | `587` | `465` for SSL (Resend), `587` for STARTTLS |
+| `SMTP_USER` | _(unset)_ | SMTP username (e.g. `resend`) |
+| `SMTP_PASSWORD` | _(unset)_ | SMTP credential / API key |
+| `SMTP_FROM` | _(unset)_ | Sender address shown in email (e.g. `Planner Agent <noreply@yourdomain.com>`) |
 
 ---
 
@@ -138,15 +151,23 @@ app/
   main.py              FastAPI app factory + router registration
   config.py            Settings loaded from environment / .env
   db.py                SQLAlchemy engine + session factory (pool_pre_ping enabled)
-  generator.py         GameplanGenerator + StackRecommender
+  email.py             Password-reset email delivery (SMTP, SSL/STARTTLS)
+  generator.py         GameplanGenerator + StackRecommender + render_md
   logging_config.py    loguru structured logging (JSON in production)
   models/              Pydantic + SQLModel data models
-  routes/              FastAPI routers (planner, auth, health)
-  templates/           Jinja2 HTML templates
+  routes/
+    planner.py         /interview, /generate, /gameplan/{id}, /share/{slug}
+    auth.py            /register, /login, /logout, /forgot-password, /reset-password
+    health.py          GET /health, GET /metrics
+  templates/           Jinja2 HTML templates (base, index, interview, gameplan,
+                       gameplans, login, register, forgot_password, reset_password,
+                       shared_gameplan)
   static/              CSS and static assets
-tests/                 pytest test suite (61 tests, 95% coverage)
-plans/                 Project roadmap and deployment runbook
-agents/                VS Code Copilot agent files (code-review, devops)
+tests/                 pytest test suite (≥ 80% coverage)
+docs/
+  planner-agent.md     Project roadmap and phase status
+  planner-agent-production.md  Deployment runbook
+  *.png                Application screenshots
 Dockerfile             Production container image
 docker-compose.yml     Local Docker Desktop workflow
 Makefile               Developer shortcuts
@@ -160,26 +181,31 @@ fly.toml               Fly.io deployment configuration
 
 The app is deployed on [Fly.io](https://fly.io) using a Docker container backed by [Neon](https://neon.tech) serverless PostgreSQL. Deployment is fully automated via GitHub Actions — every push to `main` that passes CI is deployed automatically.
 
-See [plans/deploy/planner-agent-production.md](plans/deploy/planner-agent-production.md) for the full deployment runbook.
+See [docs/planner-agent-production.md](docs/planner-agent-production.md) for the full deployment runbook.
+
+The CI/CD pipeline (`.github/workflows/fly-deploy.yml`) runs three parallel jobs on every push to `main`:
+1. **Lint & Test** — ruff + pytest
+2. **Push image → Docker Hub** — `bonchevr/planner-agent:latest` + `bonchevr/planner-agent:sha-<commit>` (requires `DOCKERHUB_TOKEN` Actions secret)
+3. **Deploy → Fly.io** — `flyctl deploy --remote-only` (requires `FLY_API_TOKEN` Actions secret)
 
 ---
 
 ## Roadmap
 
-See [plans/planner-agent.md](plans/planner-agent.md) for the full project roadmap and phase status.
+See [docs/planner-agent.md](docs/planner-agent.md) for the full project roadmap and phase status.
 
 ---
 
 ## Screenshots
 
 ### Home page
-![Home page — hero section with call-to-action](docs/screenshots/Home_page.png)
+![Home page — hero section with call-to-action](docs/Home_page.png)
 
 ### Interview form
-![Interview form — fill in project details](docs/screenshots/New_plan.png)
+![Interview form — fill in project details](docs/New_plan.png)
 
 ### Generated gameplan
-![Gameplan view — rendered Markdown with download and copy options](docs/screenshots/Plan_overview.png)
+![Gameplan view — rendered Markdown with interactive checklist and progress tracking](docs/Plan_overview.png)
 
 ### My Plans list
-![Gameplans list — browse, edit, and delete saved plans](docs/screenshots/All_plans.png)
+![Gameplans list — browse, edit, and delete saved plans](docs/All_plans.png)
