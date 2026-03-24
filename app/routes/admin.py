@@ -1,6 +1,6 @@
 from loguru import logger
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -8,7 +8,6 @@ from sqlmodel import Session, select
 from app.auth import (
     csrf_protect,
     generate_reset_token,
-    hash_password,
     make_csrf_token,
     require_admin,
     set_csrf_cookie,
