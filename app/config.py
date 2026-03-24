@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-before-deploying"
     base_url: str = "http://localhost:8000"
 
+    # Admin — username to automatically grant admin rights on startup
+    admin_username: str = "bonchevr"
+
     # SMTP — set via environment variables / fly secrets
     smtp_host: str = ""
     smtp_port: int = 587

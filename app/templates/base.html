@@ -17,6 +17,7 @@
       {% if user is defined and user %}
         <a href="/gameplans">My Plans</a>
         <a href="/interview">+ New Plan</a>
+        {% if user.is_admin %}<a href="/admin">Admin</a>{% endif %}
         <span class="nav-username">{{ user.username }}</span>
         <form action="/logout" method="post" style="display:inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token if csrf_token is defined else '' }}" />

@@ -4,11 +4,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from prometheus_client import Counter, Histogram
+from sqlmodel import Session, select
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db import create_db_and_tables
+from app.config import settings
+from app.db import create_db_and_tables, engine
 from app.logging_config import setup_logging
+from app.models.project import User
+from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
 from app.routes.health import router as health_router
 from app.routes.planner import router as planner_router
@@ -53,7 +58,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    _seed_admin()
     yield
+
+
+def _seed_admin() -> None:
+    """Ensure the configured admin_username has is_admin=True."""
+    if not settings.admin_username:
+        return
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == settings.admin_username)).first()
+        if user and not user.is_admin:
+            user.is_admin = True
+            db.add(user)
+            db.commit()
+            logger.info("[STARTUP] Granted admin to '{}'", settings.admin_username)
 
 
 app = FastAPI(
@@ -71,4 +90,5 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(planner_router)
+app.include_router(admin_router)
 

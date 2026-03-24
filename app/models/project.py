@@ -15,6 +15,8 @@ class User(SQLModel, table=True):
     email: Optional[str] = Field(default=None, unique=True, index=True)
     hashed_password: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    is_active: bool = Field(default=True)
+    is_admin: bool = Field(default=False)
 
     gameplans: list["GameplanRecord"] = Relationship(back_populates="owner")
 

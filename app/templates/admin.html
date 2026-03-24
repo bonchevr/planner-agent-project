@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — Planner{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Admin Panel</h2>
+    <p class="page-subtitle">{{ users | length }} user{{ 's' if users | length != 1 else '' }}</p>
+  </div>
+</div>
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Joined</th>
+        <th>Status</th>
+        <th>Role</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr class="{{ 'row-inactive' if not u.is_active else '' }}">
+        <td class="text-muted">{{ u.id }}</td>
+        <td>
+          {{ u.username }}
+          {% if u.id == user.id %}<span class="badge badge-you">you</span>{% endif %}
+        </td>
+        <td class="text-muted">{{ u.email or '—' }}</td>
+        <td class="text-muted">{{ u.created_at.strftime('%d %b %Y') }}</td>
+        <td>
+          {% if u.is_active %}
+            <span class="badge badge-active">Active</span>
+          {% else %}
+            <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.is_admin %}
+            <span class="badge badge-admin">Admin</span>
+          {% else %}
+            <span class="badge badge-user">User</span>
+          {% endif %}
+        </td>
+        <td class="admin-actions">
+          {% if u.id != user.id %}
+
+            {# Activate / Deactivate #}
+            {% if u.is_active %}
+            <form action="/admin/{{ u.id }}/deactivate" method="post" style="display:inline"
+                  onsubmit="return confirm('Deactivate {{ u.username }}? They will be signed out and cannot log in.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm" title="Deactivate">Deactivate</button>
+            </form>
+            {% else %}
+            <form action="/admin/{{ u.id }}/activate" method="post" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm" title="Activate">Activate</button>
+            </form>
+            {% endif %}
+
+            {# Make / Remove admin #}
+            {% if not u.is_admin %}
+            <form action="/admin/{{ u.id }}/make-admin" method="post" style="display:inline"
+                  onsubmit="return confirm('Grant admin rights to {{ u.username }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm">Make Admin</button>
+            </form>
+            {% else %}
+            <form action="/admin/{{ u.id }}/remove-admin" method="post" style="display:inline"
+                  onsubmit="return confirm('Remove admin rights from {{ u.username }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm">Remove Admin</button>
+            </form>
+            {% endif %}
+
+            {# Reset password #}
+            {% if u.email %}
+            <form action="/admin/{{ u.id }}/reset-password" method="post" style="display:inline"
+                  onsubmit="return confirm('Send a password reset email to {{ u.username }} ({{ u.email }})?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm">Reset Password</button>
+            </form>
+            {% endif %}
+
+            {# Delete #}
+            <form action="/admin/{{ u.id }}/delete" method="post" style="display:inline"
+                  onsubmit="return confirm('Permanently delete {{ u.username }} and all their data? This cannot be undone.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)">Delete</button>
+            </form>
+
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+.admin-table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.admin-table th,
+.admin-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.admin-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-elevated);
+}
+.admin-table tbody tr:hover { background: var(--bg-hover); }
+.row-inactive { opacity: 0.55; }
+.admin-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.text-muted { color: var(--text-muted); }
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--r-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.badge-active   { background: var(--green-dim);  color: var(--green); }
+.badge-inactive { background: var(--red-dim);    color: var(--red); }
+.badge-admin    { background: var(--accent-dim); color: var(--accent); }
+.badge-user     { background: var(--bg-surface); color: var(--text-muted); }
+.badge-you      { background: var(--amber-dim);  color: var(--amber); margin-left: 0.4rem; }
+</style>
+{% endblock %}

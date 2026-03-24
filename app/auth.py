@@ -134,12 +134,26 @@ def get_current_user(
 def require_user(
     user: Optional[User] = Depends(get_current_user),
 ) -> User:
-    """Raise 401 if not logged in. Use as a route dependency."""
-    if user is None:
+    """Raise 303 if not logged in or account is inactive. Use as a route dependency."""
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
             headers={"Location": "/login"},
         )
+    return user
+
+
+def require_admin(
+    user: Optional[User] = Depends(get_current_user),
+) -> User:
+    """Raise 303 if not logged in; 403 if not admin. Use as a route dependency."""
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": "/login"},
+        )
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
     return user
 
 
